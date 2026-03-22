@@ -60,6 +60,9 @@ function paintFilters() {
       box.style.borderColor = companyMap[label].color;
       box.style.color = '#08111b';
       box.style.fontWeight = '900';
+      box.style.fontSize = '19px';
+      box.style.lineHeight = '1';
+      box.style.textAlign = 'center';
     } else {
       box.innerHTML = '';
       box.style.background = 'rgba(7,12,22,.98)';
