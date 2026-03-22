@@ -11,64 +11,68 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page-shell">
-    <header class="hero">
-      <div class="hero-left">
-        <img src="icone3T.png" alt="Grupo 3T" class="hero-logo" />
-        <div>
+  <main class="page-shell">
+    <header class="page-header">
+      <div class="header-brand">
+        <img src="icone3T.png" alt="Grupo 3T" class="brand-logo" />
+        <div class="brand-copy">
           <h1>Painel Financeiro</h1>
           <p>Comparativo de saldo final por empresa</p>
         </div>
       </div>
     </header>
 
-    <section class="company-filters" id="companyFilters"></section>
+    <section class="filter-bar" id="companyFilters"></section>
 
-    <section class="kpis">
-      <article class="kpi-card">
-        <div class="kpi-icon cyan">▣</div>
-        <div>
-          <div class="kpi-label">Total Saldo Final</div>
-          <div class="kpi-value" id="saldoFinalValue"></div>
-          <div class="kpi-sub" id="saldoFinalSub"></div>
+    <section class="summary-grid">
+      <article class="summary-card">
+        <div class="summary-head">
+          <span class="summary-icon summary-icon-cyan"></span>
+          <span class="summary-label">Total Saldo Final</span>
         </div>
+        <div class="summary-value" id="saldoFinalValue"></div>
+        <div class="summary-sub" id="saldoFinalSub"></div>
       </article>
-      <article class="kpi-card">
-        <div class="kpi-icon red">↘</div>
-        <div>
-          <div class="kpi-label">Variação do Período</div>
-          <div class="kpi-value negative" id="variacaoValue"></div>
+
+      <article class="summary-card">
+        <div class="summary-head">
+          <span class="summary-arrow">↘</span>
+          <span class="summary-label">Variação do Período</span>
         </div>
+        <div class="summary-value summary-negative" id="variacaoValue"></div>
       </article>
-      <article class="kpi-card">
-        <div class="kpi-icon gray">▣</div>
-        <div>
-          <div class="kpi-label">Total Saldo Inicial</div>
-          <div class="kpi-value" id="saldoInicialValue"></div>
+
+      <article class="summary-card">
+        <div class="summary-head">
+          <span class="summary-icon summary-icon-gray"></span>
+          <span class="summary-label">Total Saldo Inicial</span>
         </div>
+        <div class="summary-value" id="saldoInicialValue"></div>
       </article>
     </section>
 
-    <section class="chart-card">
+    <section class="panel-card chart-panel">
       <h2>Evolução do Saldo Final</h2>
-      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
-      <div class="custom-legend" id="customLegend"></div>
+      <div class="chart-wrap">
+        <canvas id="lineChart"></canvas>
+      </div>
+      <div class="legend-row" id="customLegend"></div>
     </section>
 
-    <section class="details-card">
+    <section class="panel-card details-panel">
       <h2>Detalhes por Período</h2>
       <div class="details-list" id="detailsList"></div>
     </section>
 
-    <footer class="brand-footer">
-      <img src="marcaspaquim.png" alt="Marcas Paquim" class="brands-strip" />
+    <footer class="page-footer">
+      <img src="marcaspaquim.png" alt="Marcas do grupo" class="footer-brands" />
     </footer>
-  </div>
+  </main>
 
   <div class="modal hidden" id="detailModal">
-    <div class="modal-backdrop" data-close="true"></div>
-    <div class="modal-panel">
-      <button class="modal-close" id="modalClose">×</button>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-dialog">
+      <button class="modal-close" id="modalClose" aria-label="Fechar">×</button>
       <h3 id="modalTitle"></h3>
       <div class="modal-grid" id="modalGrid"></div>
     </div>
