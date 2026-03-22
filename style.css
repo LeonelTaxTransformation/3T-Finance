@@ -26,19 +26,19 @@ body{
 .page-shell{
   width:min(1830px, calc(100vw - 60px));
   margin:0 auto;
-  padding:18px 0 24px;
+  padding:26px 0 24px;
 }
 .page-header{margin-bottom:34px}
 .header-brand{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   gap:22px;
 }
 .brand-logo{
-  width:84px;
-  height:84px;
+  width:82px;
+  height:82px;
   object-fit:contain;
-  margin-top:6px;
+  margin-top:0;
 }
 .brand-copy h1{
   margin:0;
@@ -46,6 +46,9 @@ body{
   line-height:1.04;
   font-weight:800;
   letter-spacing:-0.035em;
+}
+.brand-copy{
+  padding-top:8px;
 }
 .brand-copy p{
   margin:10px 0 0;
@@ -78,6 +81,7 @@ body{
 .filter-chip:hover{transform:translateY(-1px)}
 
 
+
 .filter-box{
   width:30px;
   height:30px;
@@ -86,25 +90,15 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:0;
   line-height:1;
   background:rgba(7,12,22,.98);
   flex:0 0 30px;
   position:relative;
+  font-size:16px;
+  font-weight:900;
 }
-.filter-box::after{
-  content:'';
-  width:12px;
-  height:7px;
-  border-left:3px solid #ffffff;
-  border-bottom:3px solid #ffffff;
-  transform:rotate(-45deg) scale(0);
-  transform-origin:center;
-  transition:transform .14s ease;
-  margin-top:-2px;
-}
-
 .filter-chip span:last-child{
+
 
   font-size:16px;
   font-weight:700;
@@ -130,17 +124,7 @@ body{
   flex:0 0 30px;
   position:relative;
 }
-.filter-box::after{
-  content:'';
-  width:12px;
-  height:7px;
-  border-left:3px solid #ffffff;
-  border-bottom:3px solid #ffffff;
-  transform:rotate(-45deg) scale(0);
-  transform-origin:center;
-  transition:transform .14s ease;
-  margin-top:-2px;
-}
+
 
 .filter-chip.inactive{color:#b7c1cf}
 .filter-chip.inactive 
@@ -158,17 +142,7 @@ body{
   flex:0 0 30px;
   position:relative;
 }
-.filter-box::after{
-  content:'';
-  width:12px;
-  height:7px;
-  border-left:3px solid #ffffff;
-  border-bottom:3px solid #ffffff;
-  transform:rotate(-45deg) scale(0);
-  transform-origin:center;
-  transition:transform .14s ease;
-  margin-top:-2px;
-}
+
 
 
 .summary-grid{
@@ -344,8 +318,8 @@ body{
   .brand-copy p{font-size:14px;}
 }
 
-.filter-chip.active .filter-box{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;color:#08111b !important;}
+
 .filter-chip.inactive{border-color:rgba(152,167,190,.20)!important;color:#9ba8bc!important;}
-.filter-chip.inactive .filter-box{border-color:rgba(152,167,190,.38)!important;background:transparent!important;color:transparent!important;}
+
 .filter-chip.active{font-weight:700;}
 .footer-brands{max-width:min(1280px, 92%);opacity:1;filter:none;}

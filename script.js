@@ -53,7 +53,19 @@ function paintFilters() {
     chip.classList.toggle('active', active);
     chip.classList.toggle('inactive', !active);
     chip.style.color = active ? companyMap[label].color : '#b7c1cf';
-    chip.querySelector('.filter-box').setAttribute('data-active', active ? '1' : '0');
+    const box = chip.querySelector('.filter-box');
+    if (active) {
+      box.innerHTML = '✓';
+      box.style.background = companyMap[label].color;
+      box.style.borderColor = companyMap[label].color;
+      box.style.color = '#08111b';
+      box.style.fontWeight = '900';
+    } else {
+      box.innerHTML = '';
+      box.style.background = 'rgba(7,12,22,.98)';
+      box.style.borderColor = 'rgba(160,178,205,.55)';
+      box.style.color = 'transparent';
+    }
   });
 }
 
