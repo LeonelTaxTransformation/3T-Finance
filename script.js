@@ -53,7 +53,7 @@ function paintFilters() {
     chip.classList.toggle('active', active);
     chip.classList.toggle('inactive', !active);
     chip.style.color = active ? companyMap[label].color : '#b7c1cf';
-    chip.querySelector('.filter-box').textContent = active ? '✓' : '';
+    chip.querySelector('.filter-box').innerHTML = active ? '&#10003;' : '';
   });
 }
 
