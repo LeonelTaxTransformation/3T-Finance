@@ -35,21 +35,21 @@ body{
   gap:18px;
 }
 .brand-logo{
-  width:72px;
-  height:72px;
+  width:92px;
+  height:92px;
   object-fit:contain;
   margin-top:2px;
 }
 .brand-copy h1{
   margin:0;
-  font-size:30px;
+  font-size:24px;
   line-height:1.04;
   font-weight:800;
   letter-spacing:-0.035em;
 }
 .brand-copy p{
   margin:8px 0 0;
-  font-size:13px;
+  font-size:12px;
   color:var(--muted);
   font-weight:500;
 }
@@ -76,16 +76,34 @@ body{
   user-select:none;
 }
 .filter-chip:hover{transform:translateY(-1px)}
+
 .filter-box{
-  width:28px;height:28px;border-radius:8px;
+  width:30px;
+  height:30px;
+  border-radius:9px;
   border:2px solid rgba(126,145,175,.45);
-  display:grid;place-items:center;
-  font-size:18px;font-weight:900;line-height:1;
-  color:transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0;
+  line-height:1;
   background:rgba(3,7,14,.65);
-  flex:0 0 28px;
+  flex:0 0 30px;
+  position:relative;
+}
+.filter-box::after{
+  content:'';
+  width:14px;
+  height:10px;
+  border-left:3px solid #08111b;
+  border-bottom:3px solid #08111b;
+  transform:rotate(-45deg) scale(0);
+  transform-origin:center;
+  transition:transform .14s ease;
+  margin-top:-2px;
 }
 .filter-chip span:last-child{
+
   font-size:16px;
   font-weight:700;
   white-space:nowrap;
@@ -98,10 +116,18 @@ body{
 .filter-chip.active .filter-box{
   border-color:currentColor;
   background:currentColor;
-  color:#08111b;
+}
+.filter-chip.active .filter-box::after{
+  transform:rotate(-45deg) scale(1);
 }
 .filter-chip.inactive{color:#b7c1cf}
-.filter-chip.inactive .filter-box{border-color:rgba(191,205,222,.45);background:rgba(5,10,18,.35)}
+.filter-chip.inactive .filter-box{
+  border-color:rgba(191,205,222,.45);
+  background:rgba(5,10,18,.35);
+}
+.filter-chip.inactive .filter-box::after{
+  transform:rotate(-45deg) scale(0);
+}
 
 .summary-grid{
   display:grid;

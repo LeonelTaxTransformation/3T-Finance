@@ -24,7 +24,7 @@ function buildFilters() {
     chip.dataset.company = company.label;
     chip.style.setProperty('--chip-color', company.color);
     chip.innerHTML = `
-      <span class="filter-box">✓</span>
+      <span class="filter-box" aria-hidden="true"></span>
       <span>${company.label}</span>
     `;
     chip.addEventListener('click', () => toggleCompany(company.label));
@@ -53,8 +53,7 @@ function paintFilters() {
     chip.classList.toggle('active', active);
     chip.classList.toggle('inactive', !active);
     chip.style.color = active ? companyMap[label].color : '#b7c1cf';
-    chip.querySelector('.filter-box').innerHTML = active ? '✓' : '';
-    chip.querySelector('.filter-box').style.color = active ? '#08111b' : 'transparent';
+    chip.querySelector('.filter-box').setAttribute('data-active', active ? '1' : '0');
   });
 }
 
