@@ -24,7 +24,7 @@ function buildFilters() {
     chip.dataset.company = company.label;
     chip.style.setProperty('--chip-color', company.color);
     chip.innerHTML = `
-      <span class="filter-box" aria-hidden="true"></span>
+      <span class="filter-box">✓</span>
       <span>${company.label}</span>
     `;
     chip.addEventListener('click', () => toggleCompany(company.label));
@@ -50,10 +50,11 @@ function paintFilters() {
   document.querySelectorAll('.filter-chip').forEach(chip => {
     const label = chip.dataset.company;
     const active = state.selected.has(label);
+    
+    // Alterna as classes para o CSS cuidar da visualização do Check
     chip.classList.toggle('active', active);
     chip.classList.toggle('inactive', !active);
     chip.style.color = active ? companyMap[label].color : '#b7c1cf';
-    chip.querySelector('.filter-box').setAttribute('data-active', active ? '1' : '0');
   });
 }
 
