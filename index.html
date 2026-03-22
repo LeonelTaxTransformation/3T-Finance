@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Financeiro</title>
+  <title>3T Finance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,59 +11,66 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page-bg"></div>
-  <main class="app">
+  <div class="page-shell">
     <header class="hero">
-      <div class="brand-wrap">
-        <img class="brand-logo" src="icone3T.png" alt="Grupo 3T" />
+      <div class="hero-left">
+        <img src="icone3T.png" alt="Grupo 3T" class="hero-logo" />
         <div>
           <h1>Painel Financeiro</h1>
           <p>Comparativo de saldo final por empresa</p>
         </div>
       </div>
-      <img class="brands-strip" src="marcaspaquim.png" alt="Marcas do grupo" />
     </header>
 
-    <section id="companyFilters" class="filters"></section>
+    <section class="company-filters" id="companyFilters"></section>
 
     <section class="kpis">
       <article class="kpi-card">
-        <div class="kpi-label"><span class="kpi-icon cyan"></span>Total Saldo Final</div>
-        <div id="saldoFinal" class="kpi-value"></div>
-        <div id="saldoFinalMeta" class="kpi-meta"></div>
-      </article>
-      <article class="kpi-card">
-        <div class="kpi-label"><span class="kpi-icon red"></span>Variação do Período</div>
-        <div id="variacao" class="kpi-value danger"></div>
-      </article>
-      <article class="kpi-card">
-        <div class="kpi-label"><span class="kpi-icon gray"></span>Total Saldo Inicial</div>
-        <div id="saldoInicial" class="kpi-value"></div>
-      </article>
-    </section>
-
-    <section class="panel chart-panel">
-      <h2>Evolução do Saldo Final</h2>
-      <div class="chart-wrap"><canvas id="chart"></canvas></div>
-    </section>
-
-    <section class="panel details-panel">
-      <h2>Detalhes por Período</h2>
-      <div id="detailsList" class="details-list"></div>
-    </section>
-  </main>
-
-  <div id="detailsModal" class="modal hidden" aria-hidden="true">
-    <div class="modal-backdrop"></div>
-    <div class="modal-card">
-      <div class="modal-header">
+        <div class="kpi-icon cyan">▣</div>
         <div>
-          <h3 id="modalTitle">Detalhes</h3>
-          <p id="modalSubtitle"></p>
+          <div class="kpi-label">Total Saldo Final</div>
+          <div class="kpi-value" id="saldoFinalValue"></div>
+          <div class="kpi-sub" id="saldoFinalSub"></div>
         </div>
-        <button id="closeModal" class="close-btn" type="button">✕</button>
-      </div>
-      <div id="modalBody" class="modal-body"></div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-icon red">↘</div>
+        <div>
+          <div class="kpi-label">Variação do Período</div>
+          <div class="kpi-value negative" id="variacaoValue"></div>
+        </div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-icon gray">▣</div>
+        <div>
+          <div class="kpi-label">Total Saldo Inicial</div>
+          <div class="kpi-value" id="saldoInicialValue"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="chart-card">
+      <h2>Evolução do Saldo Final</h2>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+      <div class="custom-legend" id="customLegend"></div>
+    </section>
+
+    <section class="details-card">
+      <h2>Detalhes por Período</h2>
+      <div class="details-list" id="detailsList"></div>
+    </section>
+
+    <footer class="brand-footer">
+      <img src="marcaspaquim.png" alt="Marcas Paquim" class="brands-strip" />
+    </footer>
+  </div>
+
+  <div class="modal hidden" id="detailModal">
+    <div class="modal-backdrop" data-close="true"></div>
+    <div class="modal-panel">
+      <button class="modal-close" id="modalClose">×</button>
+      <h3 id="modalTitle"></h3>
+      <div class="modal-grid" id="modalGrid"></div>
     </div>
   </div>
 
