@@ -506,3 +506,8 @@ body{
 .launch-cell.var-positive{color:#22c55e;}
 .launch-cell.var-negative{color:#ef4444;}
 @media (max-width: 900px){.launch-row{grid-template-columns:1fr;}}
+
+.modal-dialog{
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}

@@ -346,14 +346,24 @@ function renderYearDetails(entity, year) {
   const saldoFinal = rows.reduce((a,b) => a + (b.saldo_final || 0), 0);
   const variacao = saldoFinal - saldoInicial;
 
-  const orderedRows = rows
-    .filter(r => r.data_final || r.periodo)
-    .slice()
-    .sort((a, b) => {
-      const av = String(a.data_final || a.periodo || '');
-      const bv = String(b.data_final || b.periodo || '');
-      return av.localeCompare(bv);
-    });
+  const monthlyMap = new Map();
+  rows.forEach(row => {
+    const periodo = row.periodo || row.data_final || '-';
+    if (!monthlyMap.has(periodo)) {
+      monthlyMap.set(periodo, {
+        periodo,
+        saldo_inicial: 0,
+        saldo_final: 0
+      });
+    }
+    const item = monthlyMap.get(periodo);
+    item.saldo_inicial += (row.saldo_inicial || 0);
+    item.saldo_final += (row.saldo_final || 0);
+  });
+
+  const orderedRows = Array.from(monthlyMap.values()).sort((a, b) => {
+    return String(a.periodo).localeCompare(String(b.periodo));
+  });
 
   const variationClass = variacao >= 0 ? 'positive' : 'negative';
   document.getElementById('yearDetailGrid').innerHTML = `
@@ -374,10 +384,9 @@ function renderYearDetails(entity, year) {
   const launchRows = orderedRows.slice(0, 12).map(row => {
     const rowVar = (row.saldo_final || 0) - (row.saldo_inicial || 0);
     const rowVarClass = rowVar >= 0 ? 'var-positive' : 'var-negative';
-    const periodo = row.periodo || row.data_final || '-';
     return `
       <div class="launch-row">
-        <div class="launch-cell"><strong>${periodo}</strong></div>
+        <div class="launch-cell"><strong>${row.periodo}</strong></div>
         <div class="launch-cell">Inicial: ${formatBRL(row.saldo_inicial || 0)}</div>
         <div class="launch-cell">Final: ${formatBRL(row.saldo_final || 0)}</div>
         <div class="launch-cell ${rowVarClass}">Variação: ${rowVar < 0 ? '-' : ''}${formatBRL(Math.abs(rowVar))}</div>
