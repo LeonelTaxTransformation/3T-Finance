@@ -5,6 +5,7 @@ const state = {
   chart: null,
   modalEntity: null,
   modalYear: null,
+  axisMode: 'intermediario',
 };
 
 const companyMap = Object.fromEntries(data.companies.map(c => [c.id, c]));
@@ -165,6 +166,48 @@ function buildDatasets() {
   return { labels, datasets };
 }
 
+
+function formatAxisLabel(value, index, labels, mode) {
+  if (!value) return '';
+  const valueStr = String(value);
+  const year = valueStr.slice(0, 4);
+  const month = valueStr.slice(5, 7);
+  const prev = index > 0 ? String(labels[index - 1]) : '';
+  const prevYear = prev.slice(0, 4);
+
+  if (mode === 'ano') {
+    return year !== prevYear ? year : '';
+  }
+
+  if (mode === 'intermediario') {
+    const monthName = {
+      '01': 'JAN', '05': 'MAI', '09': 'SET'
+    }[month];
+
+    if (year !== prevYear) return year;
+    return monthName || '';
+  }
+
+  if (mode === 'detalhado') {
+    if (year !== prevYear) return year;
+    return month;
+  }
+
+  return valueStr;
+}
+
+function applyAxisMode() {
+  if (!state.chart) return;
+  const labels = state.chart.data.labels || [];
+  state.chart.options.scales.x.ticks.callback = function(value, index) {
+    const raw = labels[index];
+    return formatAxisLabel(raw, index, labels, state.axisMode);
+  };
+  state.chart.options.scales.x.ticks.autoSkip = state.axisMode !== 'detalhado';
+  state.chart.options.scales.x.ticks.maxTicksLimit = state.axisMode === 'ano' ? 12 : (state.axisMode === 'intermediario' ? 24 : 80);
+  state.chart.update();
+}
+
 function buildChart() {
   const ctx = document.getElementById('lineChart').getContext('2d');
   const built = buildDatasets();
@@ -193,8 +236,12 @@ function buildChart() {
           ticks: {
             color: '#7f8faa',
             autoSkip: true,
-            maxTicksLimit: 18,
-            maxRotation: 0
+            maxTicksLimit: 24,
+            maxRotation: 0,
+            callback: function(value, index) {
+              const raw = this.chart.data.labels[index];
+              return formatAxisLabel(raw, index, this.chart.data.labels, state.axisMode);
+            }
           },
           grid: { color: 'rgba(66, 92, 128, .12)' }
         },
@@ -209,6 +256,7 @@ function buildChart() {
     }
   });
   updateLegend(built.datasets);
+  applyAxisMode();
 }
 
 function updateChart() {
@@ -217,6 +265,7 @@ function updateChart() {
   state.chart.data.datasets = built.datasets;
   state.chart.update();
   updateLegend(built.datasets);
+  applyAxisMode();
 }
 
 function updateLegend(datasets) {
@@ -352,6 +401,14 @@ function closeModal() {
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+
+const axisDetailSelect = document.getElementById('axisDetailSelect');
+if (axisDetailSelect) {
+  axisDetailSelect.addEventListener('change', (e) => {
+    state.axisMode = e.target.value;
+    applyAxisMode();
+  });
+}
 
 buildFilters();
 updateKPIs();
