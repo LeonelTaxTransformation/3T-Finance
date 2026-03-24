@@ -280,6 +280,10 @@ function buildChart() {
           titleColor: '#ffffff',
           bodyColor: '#dce6f7',
           callbacks: {
+            title: (items) => {
+              const raw = items && items.length ? items[0].label : '';
+              return formatTooltipDate(raw);
+            },
             label: (ctx) => `${ctx.dataset.label}: ${formatBRL(ctx.parsed.y || 0)}`
           }
         }
