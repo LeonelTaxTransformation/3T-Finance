@@ -10,6 +10,29 @@ const state = {
 
 const companyMap = Object.fromEntries(data.companies.map(c => [c.id, c]));
 
+
+function formatTooltipDate(value) {
+  const v = String(value || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const year = v.slice(0, 4);
+  const month = v.slice(5, 7);
+  const monthMap = {
+    '01': 'Janeiro',
+    '02': 'Fevereiro',
+    '03': 'Março',
+    '04': 'Abril',
+    '05': 'Maio',
+    '06': 'Junho',
+    '07': 'Julho',
+    '08': 'Agosto',
+    '09': 'Setembro',
+    '10': 'Outubro',
+    '11': 'Novembro',
+    '12': 'Dezembro'
+  };
+  return `${monthMap[month] || month}/${year}`;
+}
+
 function formatBRL(value) {
   return (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
