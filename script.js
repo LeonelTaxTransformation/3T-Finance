@@ -382,9 +382,6 @@ function availableYears(entity) {
 
 function renderYearDetails(entity, year) {
   const rows = entityRows(entity).filter(r => r.ano === year);
-  const saldoInicial = rows.reduce((a,b) => a + (b.saldo_inicial || 0), 0);
-  const saldoFinal = rows.reduce((a,b) => a + (b.saldo_final || 0), 0);
-  const variacao = saldoFinal - saldoInicial;
 
   const monthlyMap = new Map();
   rows.forEach(row => {
@@ -392,6 +389,7 @@ function renderYearDetails(entity, year) {
     if (!monthlyMap.has(periodo)) {
       monthlyMap.set(periodo, {
         periodo,
+        data_final: row.data_final || '',
         saldo_inicial: 0,
         saldo_final: 0
       });
@@ -399,11 +397,20 @@ function renderYearDetails(entity, year) {
     const item = monthlyMap.get(periodo);
     item.saldo_inicial += (row.saldo_inicial || 0);
     item.saldo_final += (row.saldo_final || 0);
+    if (row.data_final && (!item.data_final || row.data_final > item.data_final)) {
+      item.data_final = row.data_final;
+    }
   });
 
   const orderedRows = Array.from(monthlyMap.values()).sort((a, b) => {
-    return String(a.periodo).localeCompare(String(b.periodo));
+    const aKey = a.data_final || `${String(a.periodo).slice(3, 7)}-${String(a.periodo).slice(0, 2)}-01`;
+    const bKey = b.data_final || `${String(b.periodo).slice(3, 7)}-${String(b.periodo).slice(0, 2)}-01`;
+    return String(aKey).localeCompare(String(bKey));
   });
+
+  const saldoInicial = orderedRows.length ? (orderedRows[0].saldo_inicial || 0) : 0;
+  const saldoFinal = orderedRows.length ? (orderedRows[orderedRows.length - 1].saldo_final || 0) : 0;
+  const variacao = saldoFinal - saldoInicial;
 
   const variationClass = variacao >= 0 ? 'positive' : 'negative';
   document.getElementById('yearDetailGrid').innerHTML = `
