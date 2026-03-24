@@ -457,3 +457,7 @@ body{
   color:#e8eef8;
   font-size:13px;
 }
+
+.summary-positive{
+  color:#22c55e !important;
+}

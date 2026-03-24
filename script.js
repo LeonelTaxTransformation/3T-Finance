@@ -102,7 +102,20 @@ function updateKPIs() {
   const agg = aggregateRows(rows);
   document.getElementById('saldoFinalValue').textContent = formatBRL(agg.saldoFinal);
   document.getElementById('saldoInicialValue').textContent = formatBRL(agg.saldoInicial);
-  document.getElementById('variacaoValue').textContent = `${agg.variacao < 0 ? '-' : ''}${formatBRL(Math.abs(agg.variacao))}`;
+
+  const variacaoEl = document.getElementById('variacaoValue');
+  const arrowEl = document.querySelector('.summary-arrow');
+  const positive = agg.variacao >= 0;
+
+  variacaoEl.textContent = `${agg.variacao < 0 ? '-' : ''}${formatBRL(Math.abs(agg.variacao))}`;
+  variacaoEl.classList.toggle('summary-positive', positive);
+  variacaoEl.classList.toggle('summary-negative', !positive);
+
+  if (arrowEl) {
+    arrowEl.textContent = positive ? '↗' : '↘';
+    arrowEl.style.color = positive ? '#22c55e' : '#ff3d3d';
+  }
+
   const entityCount = state.selected.has("__ALL__") ? data.companies.length - 1 : state.selected.size;
   document.getElementById('saldoFinalSub').textContent = `${rows.length} extratos · ${entityCount} empresas`;
 }
