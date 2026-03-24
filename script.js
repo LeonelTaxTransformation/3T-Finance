@@ -126,11 +126,44 @@ function sortedPeriods(rows) {
   return labels;
 }
 
+
+function monthRangeLabels(rows) {
+  const valid = rows
+    .map(r => String(r.data_final || ''))
+    .filter(v => /^\d{4}-\d{2}-\d{2}$/.test(v))
+    .sort();
+  if (!valid.length) return [];
+
+  const start = new Date(valid[0].slice(0, 7) + '-01T00:00:00');
+  const end = new Date(valid[valid.length - 1].slice(0, 7) + '-01T00:00:00');
+
+  const labels = [];
+  const current = new Date(start);
+  while (current <= end) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    labels.push(`${y}-${m}-01`);
+    current.setMonth(current.getMonth() + 1);
+  }
+  return labels;
+}
+
+function normalizeToMonthStart(value) {
+  const v = String(value || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v.slice(0, 7) + '-01';
+  return v;
+}
+
 function buildDatasets() {
   const rows = selectedRows();
+  const labels = monthRangeLabels(rows);
+
   if (state.selected.has("__ALL__")) {
-    const labels = sortedPeriods(rows);
-    const vals = labels.map(label => rows.filter(r => r.data_final === label).reduce((a,b) => a + (b.saldo_final || 0), 0));
+    const vals = labels.map(label =>
+      rows
+        .filter(r => normalizeToMonthStart(r.data_final) === label)
+        .reduce((a,b) => a + (b.saldo_final || 0), 0)
+    );
     return {
       labels,
       datasets: [{
@@ -148,10 +181,13 @@ function buildDatasets() {
 
   const entities = activeEntities();
   const rowsByEntity = Object.fromEntries(entities.map(e => [e, data.rows.filter(r => r.empresa === e)]));
-  const labels = [...new Set(Object.values(rowsByEntity).flat().map(r => r.data_final).filter(Boolean))].sort();
 
   const datasets = entities.map(entity => {
-    const vals = labels.map(label => rowsByEntity[entity].filter(r => r.data_final === label).reduce((a,b) => a + (b.saldo_final || 0), 0));
+    const vals = labels.map(label =>
+      rowsByEntity[entity]
+        .filter(r => normalizeToMonthStart(r.data_final) === label)
+        .reduce((a,b) => a + (b.saldo_final || 0), 0)
+    );
     return {
       label: entity,
       data: vals,
@@ -179,21 +215,16 @@ function formatAxisLabel(value, index, labels, mode) {
     return year !== prevYear ? year : '';
   }
 
-  if (mode === 'intermediario') {
-    const monthName = {
-      '01': 'JAN', '05': 'MAI', '09': 'SET'
-    }[month];
+  // Ano + meses-chave: ano no primeiro ponto do ano, e MAR/JUN/SET/DEZ nos demais
+  const monthName = {
+    '03': 'MAR',
+    '06': 'JUN',
+    '09': 'SET',
+    '12': 'DEZ'
+  }[month];
 
-    if (year !== prevYear) return year;
-    return monthName || '';
-  }
-
-  if (mode === 'detalhado') {
-    if (year !== prevYear) return year;
-    return month;
-  }
-
-  return valueStr;
+  if (year !== prevYear) return year;
+  return monthName || '';
 }
 
 function applyAxisMode() {
@@ -203,8 +234,8 @@ function applyAxisMode() {
     const raw = labels[index];
     return formatAxisLabel(raw, index, labels, state.axisMode);
   };
-  state.chart.options.scales.x.ticks.autoSkip = state.axisMode !== 'detalhado';
-  state.chart.options.scales.x.ticks.maxTicksLimit = state.axisMode === 'ano' ? 12 : (state.axisMode === 'intermediario' ? 24 : 80);
+  state.chart.options.scales.x.ticks.autoSkip = false;
+  state.chart.options.scales.x.ticks.maxTicksLimit = state.axisMode === 'ano' ? labels.length : labels.length;
   state.chart.update();
 }
 
