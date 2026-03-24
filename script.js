@@ -219,8 +219,7 @@ function formatAxisLabel(value, index, labels, mode) {
   const monthName = {
     '03': 'MAR',
     '06': 'JUN',
-    '09': 'SET',
-    '12': 'DEZ'
+    '09': 'SET'
   }[month];
 
   if (year !== prevYear) return year;
