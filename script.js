@@ -303,17 +303,21 @@ function buildChart() {
           grid: {
             color: (ctx) => {
               const v = Number(ctx.tick?.value || 0);
-              return v === 0 ? 'rgba(255,255,255,.35)' : 'rgba(66, 92, 128, .12)';
+              return v === 0 ? 'rgba(255,255,255,.38)' : 'rgba(66, 92, 128, .12)';
             },
             lineWidth: (ctx) => {
               const v = Number(ctx.tick?.value || 0);
-              return v === 0 ? 1 : 1;
-            }
+              return v === 0 ? 1.2 : 1;
+            },
+            drawTicks: true
           }
         },
         y: {
           ticks: {
-            color: '#7f8faa',
+            color: (ctx) => {
+              const v = Number(ctx.tick?.value || 0);
+              return v < 0 ? '#ef4444' : '#7f8faa';
+            },
             callback: (value) => formatBRL(value)
           },
           grid: { color: 'rgba(66, 92, 128, .12)' }
@@ -423,9 +427,9 @@ function renderYearDetails(entity, year) {
     return `
       <div class="launch-row">
         <div class="launch-cell"><strong>${row.periodo}</strong></div>
-        <div class="launch-cell">Inicial: ${formatBRL(row.saldo_inicial || 0)}</div>
-        <div class="launch-cell">Final: ${formatBRL(row.saldo_final || 0)}</div>
-        <div class="launch-cell ${rowVarClass}">Variação: ${rowVar < 0 ? '-' : ''}${formatBRL(Math.abs(rowVar))}</div>
+        <div class="launch-cell">${formatBRL(row.saldo_inicial || 0)}</div>
+        <div class="launch-cell">${formatBRL(row.saldo_final || 0)}</div>
+        <div class="launch-cell ${rowVarClass}">${rowVar < 0 ? '-' : ''}${formatBRL(Math.abs(rowVar))}</div>
       </div>
     `;
   }).join('');
