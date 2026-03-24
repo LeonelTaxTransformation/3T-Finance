@@ -252,8 +252,29 @@ function renderYearDetails(entity, year) {
   const rows = entityRows(entity).filter(r => r.ano === year);
   const saldoInicial = rows.reduce((a,b) => a + (b.saldo_inicial || 0), 0);
   const saldoFinal = rows.reduce((a,b) => a + (b.saldo_final || 0), 0);
-  const variacao = saldoInicial - saldoFinal;
-  const uniqueAddresses = [...new Set(rows.map(r => r.endereco).filter(Boolean))];
+  const variacao = saldoFinal - saldoInicial;
+
+  const orderedRows = rows
+    .filter(r => r.data_final)
+    .slice()
+    .sort((a, b) => String(a.data_final).localeCompare(String(b.data_final)));
+
+  const bestMonth = orderedRows.length
+    ? orderedRows.reduce((best, row) => (best === null || (row.saldo_final || 0) > (best.saldo_final || 0) ? row : best), null)
+    : null;
+
+  const worstMonth = orderedRows.length
+    ? orderedRows.reduce((worst, row) => (worst === null || (row.saldo_final || 0) < (worst.saldo_final || 0) ? row : worst), null)
+    : null;
+
+  let growthCount = 0;
+  let dropCount = 0;
+  for (let i = 1; i < orderedRows.length; i++) {
+    const prev = orderedRows[i - 1].saldo_final || 0;
+    const curr = orderedRows[i].saldo_final || 0;
+    if (curr > prev) growthCount++;
+    if (curr < prev) dropCount++;
+  }
 
   const variationClass = variacao >= 0 ? 'positive' : 'negative';
   document.getElementById('yearDetailGrid').innerHTML = `
@@ -271,7 +292,18 @@ function renderYearDetails(entity, year) {
     </div>
   `;
 
-  document.getElementById('addressBox').innerHTML = ``;
+  document.getElementById('addressBox').innerHTML = `
+    <div class="analysis-box">
+      <div class="analysis-title">Análise resumida de ${year}</div>
+      <div class="analysis-list">
+        <div class="analysis-item"><strong>Melhor mês:</strong> ${bestMonth ? `${bestMonth.periodo} (${formatBRL(bestMonth.saldo_final || 0)})` : 'Sem dados'}</div>
+        <div class="analysis-item"><strong>Pior mês:</strong> ${worstMonth ? `${worstMonth.periodo} (${formatBRL(worstMonth.saldo_final || 0)})` : 'Sem dados'}</div>
+        <div class="analysis-item"><strong>Meses com crescimento:</strong> ${growthCount}</div>
+        <div class="analysis-item"><strong>Meses com queda:</strong> ${dropCount}</div>
+        <div class="analysis-item"><strong>Total de registros no ano:</strong> ${orderedRows.length}</div>
+      </div>
+    </div>
+  `;
 }
 
 function openDetailModal(entity) {

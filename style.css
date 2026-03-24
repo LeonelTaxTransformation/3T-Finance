@@ -436,3 +436,24 @@ body{
 .year-detail-value.negative{
   color:#ef4444;
 }
+
+.analysis-box{
+  margin-top:18px;
+  border:1px solid rgba(66, 92, 128, .22);
+  background:#0a1220;
+  border-radius:14px;
+  padding:16px;
+}
+.analysis-title{
+  color:#8ea0bc;
+  font-size:12px;
+  margin-bottom:10px;
+}
+.analysis-list{
+  display:grid;
+  gap:8px;
+}
+.analysis-item{
+  color:#e8eef8;
+  font-size:13px;
+}
