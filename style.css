@@ -498,3 +498,11 @@ body{
     align-items:flex-start;
   }
 }
+
+.launch-list{display:grid;gap:10px;}
+.launch-row{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:12px;align-items:center;padding:10px 12px;border:1px solid rgba(66,92,128,.18);border-radius:12px;background:#0b1322;}
+.launch-head{color:#8ea0bc;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+.launch-cell{color:#e8eef8;font-size:13px;font-weight:600;}
+.launch-cell.var-positive{color:#22c55e;}
+.launch-cell.var-negative{color:#ef4444;}
+@media (max-width: 900px){.launch-row{grid-template-columns:1fr;}}

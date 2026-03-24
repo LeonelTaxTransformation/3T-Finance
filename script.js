@@ -347,26 +347,13 @@ function renderYearDetails(entity, year) {
   const variacao = saldoFinal - saldoInicial;
 
   const orderedRows = rows
-    .filter(r => r.data_final)
+    .filter(r => r.data_final || r.periodo)
     .slice()
-    .sort((a, b) => String(a.data_final).localeCompare(String(b.data_final)));
-
-  const bestMonth = orderedRows.length
-    ? orderedRows.reduce((best, row) => (best === null || (row.saldo_final || 0) > (best.saldo_final || 0) ? row : best), null)
-    : null;
-
-  const worstMonth = orderedRows.length
-    ? orderedRows.reduce((worst, row) => (worst === null || (row.saldo_final || 0) < (worst.saldo_final || 0) ? row : worst), null)
-    : null;
-
-  let growthCount = 0;
-  let dropCount = 0;
-  for (let i = 1; i < orderedRows.length; i++) {
-    const prev = orderedRows[i - 1].saldo_final || 0;
-    const curr = orderedRows[i].saldo_final || 0;
-    if (curr > prev) growthCount++;
-    if (curr < prev) dropCount++;
-  }
+    .sort((a, b) => {
+      const av = String(a.data_final || a.periodo || '');
+      const bv = String(b.data_final || b.periodo || '');
+      return av.localeCompare(bv);
+    });
 
   const variationClass = variacao >= 0 ? 'positive' : 'negative';
   document.getElementById('yearDetailGrid').innerHTML = `
@@ -384,15 +371,31 @@ function renderYearDetails(entity, year) {
     </div>
   `;
 
+  const launchRows = orderedRows.slice(0, 12).map(row => {
+    const rowVar = (row.saldo_final || 0) - (row.saldo_inicial || 0);
+    const rowVarClass = rowVar >= 0 ? 'var-positive' : 'var-negative';
+    const periodo = row.periodo || row.data_final || '-';
+    return `
+      <div class="launch-row">
+        <div class="launch-cell"><strong>${periodo}</strong></div>
+        <div class="launch-cell">Inicial: ${formatBRL(row.saldo_inicial || 0)}</div>
+        <div class="launch-cell">Final: ${formatBRL(row.saldo_final || 0)}</div>
+        <div class="launch-cell ${rowVarClass}">Variação: ${rowVar < 0 ? '-' : ''}${formatBRL(Math.abs(rowVar))}</div>
+      </div>
+    `;
+  }).join('');
+
   document.getElementById('addressBox').innerHTML = `
     <div class="analysis-box">
-      <div class="analysis-title">Análise resumida de ${year}</div>
-      <div class="analysis-list">
-        <div class="analysis-item"><strong>Melhor mês:</strong> ${bestMonth ? `${bestMonth.periodo} (${formatBRL(bestMonth.saldo_final || 0)})` : 'Sem dados'}</div>
-        <div class="analysis-item"><strong>Pior mês:</strong> ${worstMonth ? `${worstMonth.periodo} (${formatBRL(worstMonth.saldo_final || 0)})` : 'Sem dados'}</div>
-        <div class="analysis-item"><strong>Meses com crescimento:</strong> ${growthCount}</div>
-        <div class="analysis-item"><strong>Meses com queda:</strong> ${dropCount}</div>
-        <div class="analysis-item"><strong>Total de registros no ano:</strong> ${orderedRows.length}</div>
+      <div class="analysis-title">Lançamentos de ${year}</div>
+      <div class="launch-list">
+        <div class="launch-row">
+          <div class="launch-head">Período</div>
+          <div class="launch-head">Saldo Inicial</div>
+          <div class="launch-head">Saldo Final</div>
+          <div class="launch-head">Variação</div>
+        </div>
+        ${launchRows || '<div class="analysis-item">Sem lançamentos para este ano.</div>'}
       </div>
     </div>
   `;
