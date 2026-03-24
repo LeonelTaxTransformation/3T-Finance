@@ -300,7 +300,16 @@ function buildChart() {
               return formatAxisLabel(raw, index, this.chart.data.labels, state.axisMode);
             }
           },
-          grid: { color: 'rgba(66, 92, 128, .12)' }
+          grid: {
+            color: (ctx) => {
+              const v = Number(ctx.tick?.value || 0);
+              return v === 0 ? 'rgba(255,255,255,.35)' : 'rgba(66, 92, 128, .12)';
+            },
+            lineWidth: (ctx) => {
+              const v = Number(ctx.tick?.value || 0);
+              return v === 0 ? 1 : 1;
+            }
+          }
         },
         y: {
           ticks: {
