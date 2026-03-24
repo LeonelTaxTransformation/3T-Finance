@@ -255,6 +255,7 @@ function renderYearDetails(entity, year) {
   const variacao = saldoInicial - saldoFinal;
   const uniqueAddresses = [...new Set(rows.map(r => r.endereco).filter(Boolean))];
 
+  const variationClass = variacao >= 0 ? 'positive' : 'negative';
   document.getElementById('yearDetailGrid').innerHTML = `
     <div class="year-detail-card">
       <div class="year-detail-label">Saldo Inicial</div>
@@ -265,21 +266,12 @@ function renderYearDetails(entity, year) {
       <div class="year-detail-value">${formatBRL(saldoFinal)}</div>
     </div>
     <div class="year-detail-card">
-      <div class="year-detail-label">Endereços</div>
-      <div class="year-detail-value">${uniqueAddresses.length}</div>
-    </div>
-    <div class="year-detail-card">
       <div class="year-detail-label">Variação</div>
-      <div class="year-detail-value">${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}</div>
+      <div class="year-detail-value ${variationClass}">${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}</div>
     </div>
   `;
 
-  document.getElementById('addressBox').innerHTML = `
-    <div class="address-title">Endereços do ano ${year}</div>
-    <div class="address-list">
-      ${uniqueAddresses.map(addr => `<div class="address-item">${addr}</div>`).join('') || '<div class="address-item">Sem endereços disponíveis</div>'}
-    </div>
-  `;
+  document.getElementById('addressBox').innerHTML = ``;
 }
 
 function openDetailModal(entity) {
