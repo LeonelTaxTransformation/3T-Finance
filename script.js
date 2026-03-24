@@ -1,17 +1,28 @@
+
 const data = window.DASHBOARD_DATA;
 const state = {
-  selected: new Set(data.companies.map(c => c.label)),
-  chart: null
+  selected: new Set(["__ALL__"]),
+  chart: null,
+  modalEntity: null,
+  modalYear: null,
 };
 
-const companyMap = Object.fromEntries(data.companies.map(c => [c.label, c]));
+const companyMap = Object.fromEntries(data.companies.map(c => [c.id, c]));
 
 function formatBRL(value) {
   return (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function activeEntities() {
+  if (state.selected.has("__ALL__")) {
+    return data.companies.filter(c => c.id !== "__ALL__").map(c => c.id);
+  }
+  return Array.from(state.selected);
+}
+
 function selectedRows() {
-  return data.details.filter(item => state.selected.has(item.empresa));
+  const entities = new Set(activeEntities());
+  return data.rows.filter(item => entities.has(item.empresa));
 }
 
 function buildFilters() {
@@ -20,25 +31,33 @@ function buildFilters() {
 
   data.companies.forEach(company => {
     const chip = document.createElement('button');
-    chip.className = 'filter-chip active';
-    chip.dataset.company = company.label;
+    chip.className = 'filter-chip';
+    chip.dataset.company = company.id;
     chip.style.setProperty('--chip-color', company.color);
     chip.innerHTML = `
       <span class="filter-box" aria-hidden="true"></span>
       <span>${company.label}</span>
     `;
-    chip.addEventListener('click', () => toggleCompany(company.label));
+    chip.addEventListener('click', () => toggleCompany(company.id));
     wrap.appendChild(chip);
   });
 
   paintFilters();
 }
 
-function toggleCompany(label) {
-  if (state.selected.has(label) && state.selected.size > 1) {
-    state.selected.delete(label);
+function toggleCompany(id) {
+  if (id === "__ALL__") {
+    state.selected = new Set(["__ALL__"]);
   } else {
-    state.selected.add(label);
+    if (state.selected.has("__ALL__")) state.selected.delete("__ALL__");
+    if (state.selected.has(id)) {
+      state.selected.delete(id);
+    } else {
+      state.selected.add(id);
+    }
+    if (state.selected.size === 0) {
+      state.selected = new Set(["__ALL__"]);
+    }
   }
   paintFilters();
   updateKPIs();
@@ -48,16 +67,16 @@ function toggleCompany(label) {
 
 function paintFilters() {
   document.querySelectorAll('.filter-chip').forEach(chip => {
-    const label = chip.dataset.company;
-    const active = state.selected.has(label);
+    const id = chip.dataset.company;
+    const active = state.selected.has(id);
     chip.classList.toggle('active', active);
     chip.classList.toggle('inactive', !active);
-    chip.style.color = active ? companyMap[label].color : '#b7c1cf';
+    chip.style.color = active ? companyMap[id].color : '#b7c1cf';
     const box = chip.querySelector('.filter-box');
     if (active) {
       box.innerHTML = '✓';
-      box.style.background = companyMap[label].color;
-      box.style.borderColor = companyMap[label].color;
+      box.style.background = companyMap[id].color;
+      box.style.borderColor = companyMap[id].color;
       box.style.color = '#08111b';
       box.style.fontWeight = '900';
       box.style.fontSize = '19px';
@@ -72,32 +91,73 @@ function paintFilters() {
   });
 }
 
-function updateKPIs() {
-  const rows = selectedRows();
+function aggregateRows(rows) {
   const saldoFinal = rows.reduce((acc, row) => acc + (row.saldo_final || 0), 0);
   const saldoInicial = rows.reduce((acc, row) => acc + (row.saldo_inicial || 0), 0);
-  const variacao = saldoFinal - saldoInicial;
+  return { saldoFinal, saldoInicial, variacao: saldoInicial - saldoFinal };
+}
 
-  document.getElementById('saldoFinalValue').textContent = formatBRL(saldoFinal);
-  document.getElementById('saldoInicialValue').textContent = formatBRL(saldoInicial);
-  document.getElementById('variacaoValue').textContent = `${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}`;
-  document.getElementById('saldoFinalSub').textContent = `${rows.length} extratos · ${state.selected.size} empresas`;
+function updateKPIs() {
+  const rows = selectedRows();
+  const agg = aggregateRows(rows);
+  document.getElementById('saldoFinalValue').textContent = formatBRL(agg.saldoFinal);
+  document.getElementById('saldoInicialValue').textContent = formatBRL(agg.saldoInicial);
+  document.getElementById('variacaoValue').textContent = `${agg.variacao < 0 ? '-' : ''}${formatBRL(Math.abs(agg.variacao))}`;
+  const entityCount = state.selected.has("__ALL__") ? data.companies.length - 1 : state.selected.size;
+  document.getElementById('saldoFinalSub').textContent = `${rows.length} extratos · ${entityCount} empresas`;
+}
+
+function sortedPeriods(rows) {
+  const labels = [...new Set(rows.map(r => r.data_final).filter(Boolean))].sort();
+  return labels;
+}
+
+function buildDatasets() {
+  const rows = selectedRows();
+  if (state.selected.has("__ALL__")) {
+    const labels = sortedPeriods(rows);
+    const vals = labels.map(label => rows.filter(r => r.data_final === label).reduce((a,b) => a + (b.saldo_final || 0), 0));
+    return {
+      labels,
+      datasets: [{
+        label: 'Todas as empresas',
+        data: vals,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#E5E7EB',
+        pointRadius: 3,
+        pointHoverRadius: 4,
+        borderWidth: 2.5,
+        tension: 0.25
+      }]
+    };
+  }
+
+  const entities = activeEntities();
+  const rowsByEntity = Object.fromEntries(entities.map(e => [e, data.rows.filter(r => r.empresa === e)]));
+  const labels = [...new Set(Object.values(rowsByEntity).flat().map(r => r.data_final).filter(Boolean))].sort();
+
+  const datasets = entities.map(entity => {
+    const vals = labels.map(label => rowsByEntity[entity].filter(r => r.data_final === label).reduce((a,b) => a + (b.saldo_final || 0), 0));
+    return {
+      label: entity,
+      data: vals,
+      borderColor: companyMap[entity].color,
+      backgroundColor: companyMap[entity].color,
+      pointRadius: 3,
+      pointHoverRadius: 4,
+      borderWidth: 2.5,
+      tension: 0.25
+    };
+  });
+  return { labels, datasets };
 }
 
 function buildChart() {
   const ctx = document.getElementById('lineChart').getContext('2d');
+  const built = buildDatasets();
   state.chart = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: data.chartLabels,
-      datasets: data.chartDatasets.map(ds => ({
-        ...ds,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-        borderWidth: 2.5,
-        hidden: false
-      }))
-    },
+    data: built,
     options: {
       maintainAspectRatio: false,
       interaction: { mode: 'nearest', intersect: false },
@@ -123,110 +183,128 @@ function buildChart() {
             maxTicksLimit: 18,
             maxRotation: 0
           },
-          grid: {
-            color: 'rgba(66, 92, 128, .12)',
-            drawBorder: false
-          }
+          grid: { color: 'rgba(66, 92, 128, .12)' }
         },
         y: {
-          beginAtZero: true,
           ticks: {
             color: '#7f8faa',
-            callback: (value) => {
-              const n = Number(value) || 0;
-              if (n === 0) return 'R$ 0';
-              return `R$ ${(n / 1000).toLocaleString('pt-BR')}k`;
-            }
+            callback: (value) => formatBRL(value)
           },
-          grid: {
-            color: 'rgba(66, 92, 128, .12)',
-            drawBorder: false
-          }
+          grid: { color: 'rgba(66, 92, 128, .12)' }
         }
       }
     }
   });
-
-  renderLegend();
-  updateChart();
-}
-
-function renderLegend() {
-  const wrap = document.getElementById('customLegend');
-  wrap.innerHTML = '';
-
-  data.companies.forEach(company => {
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `<span class="legend-swatch" style="background:${company.color}"></span><span>${company.label}</span>`;
-    wrap.appendChild(item);
-  });
+  updateLegend(built.datasets);
 }
 
 function updateChart() {
-  if (!state.chart) return;
-  state.chart.data.datasets.forEach(ds => {
-    ds.hidden = !state.selected.has(ds.label);
-  });
+  const built = buildDatasets();
+  state.chart.data.labels = built.labels;
+  state.chart.data.datasets = built.datasets;
   state.chart.update();
+  updateLegend(built.datasets);
 }
 
-function sortRows(rows) {
-  return [...rows].sort((a, b) => {
-    const [ma, ya] = a.periodo.split('/').map(Number);
-    const [mb, yb] = b.periodo.split('/').map(Number);
-    const da = new Date(ya, ma - 1, 1).getTime();
-    const db = new Date(yb, mb - 1, 1).getTime();
-    return da - db || a.empresa.localeCompare(b.empresa);
+function updateLegend(datasets) {
+  const legend = document.getElementById('customLegend');
+  legend.innerHTML = '';
+  datasets.forEach(ds => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-dot" style="background:${ds.borderColor}"></span><span>${ds.label}</span>`;
+    legend.appendChild(item);
   });
+}
+
+function detailEntities() {
+  if (state.selected.has("__ALL__")) {
+    return ["Todas as empresas", ...data.companies.filter(c => c.id !== "__ALL__").map(c => c.id)];
+  }
+  return activeEntities();
 }
 
 function updateDetails() {
-  const rows = sortRows(selectedRows());
-  const list = document.getElementById('detailsList');
-  list.innerHTML = '';
-
-  rows.forEach(row => {
-    const color = companyMap[row.empresa]?.color || '#ffffff';
-    const div = document.createElement('div');
-    div.className = 'detail-row';
-    div.innerHTML = `
-      <span class="detail-dot" style="background:${color}"></span>
-      <div class="detail-main">
-        <span class="detail-company" style="color:${color}">${row.empresa}</span>
-        <span class="detail-period">${row.periodo}</span>
-      </div>
-      <span class="detail-value">${formatBRL(row.saldo_final)}</span>
-      <button class="detail-btn">Detalhes</button>
+  const wrap = document.getElementById('detailsList');
+  wrap.innerHTML = '';
+  detailEntities().forEach(entity => {
+    const row = document.createElement('div');
+    row.className = 'company-summary-row';
+    row.innerHTML = `
+      <div class="company-summary-name">${entity}</div>
+      <button class="detail-button" data-entity="${entity}">Detalhes</button>
     `;
-    div.querySelector('.detail-btn').addEventListener('click', () => openModal(row.empresa, row.periodo));
-    list.appendChild(div);
+    row.querySelector('.detail-button').addEventListener('click', () => openDetailModal(entity));
+    wrap.appendChild(row);
   });
 }
 
-function openModal(company, period) {
-  const key = `${company}|${period}`;
-  const item = data.composition[key];
-  if (!item) return;
+function entityRows(entity) {
+  if (entity === "Todas as empresas") return data.rows.slice();
+  return data.rows.filter(r => r.empresa === entity);
+}
 
-  document.getElementById('modalTitle').textContent = `${company} · ${period}`;
-  const grid = document.getElementById('modalGrid');
-  const entries = [
-    ['Saldo Inicial', formatBRL(item.saldo_inicial)],
-    ['Saldo Final', formatBRL(item.saldo_final)],
-    ['Variação', formatBRL(item.variacao)],
-    ['Conta Corrente', item.conta_corrente || '-'],
-    ['Documento', item.documento || '-'],
-    ['Arquivo', item.arquivo || '-'],
-    ['Endereço', item.endereco || '-']
-  ];
+function availableYears(entity) {
+  return [...new Set(entityRows(entity).map(r => r.ano).filter(Boolean))].sort();
+}
 
-  grid.innerHTML = entries.map(([k, v]) => `
-    <div class="modal-item">
-      <div class="modal-k">${k}</div>
-      <div class="modal-v">${v}</div>
+function renderYearDetails(entity, year) {
+  const rows = entityRows(entity).filter(r => r.ano === year);
+  const saldoInicial = rows.reduce((a,b) => a + (b.saldo_inicial || 0), 0);
+  const saldoFinal = rows.reduce((a,b) => a + (b.saldo_final || 0), 0);
+  const variacao = saldoInicial - saldoFinal;
+  const uniqueAddresses = [...new Set(rows.map(r => r.endereco).filter(Boolean))];
+
+  document.getElementById('yearDetailGrid').innerHTML = `
+    <div class="year-detail-card">
+      <div class="year-detail-label">Saldo Inicial</div>
+      <div class="year-detail-value">${formatBRL(saldoInicial)}</div>
     </div>
-  `).join('');
+    <div class="year-detail-card">
+      <div class="year-detail-label">Saldo Final</div>
+      <div class="year-detail-value">${formatBRL(saldoFinal)}</div>
+    </div>
+    <div class="year-detail-card">
+      <div class="year-detail-label">Endereços</div>
+      <div class="year-detail-value">${uniqueAddresses.length}</div>
+    </div>
+    <div class="year-detail-card">
+      <div class="year-detail-label">Variação</div>
+      <div class="year-detail-value">${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}</div>
+    </div>
+  `;
+
+  document.getElementById('addressBox').innerHTML = `
+    <div class="address-title">Endereços do ano ${year}</div>
+    <div class="address-list">
+      ${uniqueAddresses.map(addr => `<div class="address-item">${addr}</div>`).join('') || '<div class="address-item">Sem endereços disponíveis</div>'}
+    </div>
+  `;
+}
+
+function openDetailModal(entity) {
+  state.modalEntity = entity;
+  const years = availableYears(entity);
+  state.modalYear = years[0] || null;
+
+  document.getElementById('modalTitle').textContent = `${entity} — Detalhes`;
+  const yearWrap = document.getElementById('yearChipRow');
+  yearWrap.innerHTML = '';
+
+  years.forEach(year => {
+    const chip = document.createElement('button');
+    chip.className = `year-chip ${year === state.modalYear ? 'active' : ''}`;
+    chip.textContent = year;
+    chip.addEventListener('click', () => {
+      state.modalYear = year;
+      document.querySelectorAll('.year-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderYearDetails(entity, year);
+    });
+    yearWrap.appendChild(chip);
+  });
+
+  if (state.modalYear) renderYearDetails(entity, state.modalYear);
 
   document.getElementById('detailModal').classList.remove('hidden');
 }
@@ -235,12 +313,10 @@ function closeModal() {
   document.getElementById('detailModal').classList.add('hidden');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  buildFilters();
-  updateKPIs();
-  buildChart();
-  updateDetails();
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalBackdrop').addEventListener('click', closeModal);
 
-  document.getElementById('modalClose').addEventListener('click', closeModal);
-  document.getElementById('modalBackdrop').addEventListener('click', closeModal);
-});
+buildFilters();
+updateKPIs();
+buildChart();
+updateDetails();
