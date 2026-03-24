@@ -94,7 +94,7 @@ function paintFilters() {
 function aggregateRows(rows) {
   const saldoFinal = rows.reduce((acc, row) => acc + (row.saldo_final || 0), 0);
   const saldoInicial = rows.reduce((acc, row) => acc + (row.saldo_inicial || 0), 0);
-  return { saldoFinal, saldoInicial, variacao: saldoInicial - saldoFinal };
+  return { saldoFinal, saldoInicial, variacao: saldoFinal - saldoInicial };
 }
 
 function updateKPIs() {
