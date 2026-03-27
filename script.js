@@ -641,33 +641,13 @@ function renderDetailSummary() {
   }).join('');
 }
 
-function renderDetailTable() {
-  const head = document.getElementById('detailTableHead');
-  const body = document.getElementById('detailTableBody');
-  if (!head || !body) return;
 
+
+function buildDetailDisplayRows() {
+  const rows = [];
+  const grouped = new Map();
   const showContaCorrente = state.detailShowContaCorrente;
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
-  const contaClass = showContaCorrente ? '' : 'detail-hidden';
-  const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
-  const infoColSpan = 1 + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
-  const colSpan = infoColSpan + 3;
-  const periodSummaryMap = new Map(
-    aggregateDetailByPeriod().map(item => [item.periodo, item])
-  );
-
-  head.innerHTML = `
-    <tr>
-      <th class="detail-account-cell ${contaClass}">Conta Corrente</th>
-      <th class="detail-description-cell">Descrição</th>
-      <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
-      <th class="detail-saldo-cell">Saldo</th>
-      <th class="detail-juros-cell">Juros</th>
-      <th>Data</th>
-    </tr>
-  `;
-
-  const rows = [];
 
   if (state.detailShowSaldo) {
     detailBalanceRows()
@@ -682,6 +662,7 @@ function renderDetailTable() {
           data: item.data || '-',
           dia: '',
           sortKey: periodSortKey(item.data, item.ano),
+          daySort: 99,
           rowType: 'saldo',
         });
       });
@@ -700,20 +681,72 @@ function renderDetailTable() {
           data: item.data || '-',
           dia: item.dia || '',
           sortKey: periodSortKey(item.data, item.ano),
+          daySort: daySortValue(item.dia),
           rowType: 'juros',
         });
       });
   }
 
-  rows.sort((a, b) => {
+  rows.forEach(item => {
+    const keyParts = [item.data, item.rowType, item.descricao];
+
+    if (showDetailedDescription) keyParts.push(item.descricao_detalhada || '');
+    if (showContaCorrente) keyParts.push(item.conta_corrente || '');
+
+    const key = keyParts.join('||');
+
+    if (!grouped.has(key)) {
+      grouped.set(key, { ...item });
+      return;
+    }
+
+    const current = grouped.get(key);
+    current.saldo_valor = (Number(current.saldo_valor) || 0) + (Number(item.saldo_valor) || 0);
+    current.juros_valor = (Number(current.juros_valor) || 0) + (Number(item.juros_valor) || 0);
+    current.daySort = Math.min(Number(current.daySort) || 99, Number(item.daySort) || 99);
+  });
+
+  return Array.from(grouped.values()).sort((a, b) => {
     const periodCompare = String(a.sortKey).localeCompare(String(b.sortKey));
     if (periodCompare !== 0) return periodCompare;
     const typeCompare = (a.rowType === 'saldo' ? 0 : 1) - (b.rowType === 'saldo' ? 0 : 1);
     if (typeCompare !== 0) return typeCompare;
-    const dayCompare = daySortValue(a.dia) - daySortValue(b.dia);
-    if (dayCompare !== 0) return dayCompare;
-    return String(a.conta_corrente).localeCompare(String(b.conta_corrente));
+    const descriptionCompare = String(a.descricao).localeCompare(String(b.descricao));
+    if (descriptionCompare !== 0) return descriptionCompare;
+    const detailedCompare = String(a.descricao_detalhada).localeCompare(String(b.descricao_detalhada));
+    if (detailedCompare !== 0) return detailedCompare;
+    const accountCompare = String(a.conta_corrente).localeCompare(String(b.conta_corrente));
+    if (accountCompare !== 0) return accountCompare;
+    return (Number(a.daySort) || 99) - (Number(b.daySort) || 99);
   });
+}
+
+function renderDetailTable() {
+  const head = document.getElementById('detailTableHead');
+  const body = document.getElementById('detailTableBody');
+  if (!head || !body) return;
+
+  const showContaCorrente = state.detailShowContaCorrente;
+  const showDetailedDescription = state.detailShowDescricaoDetalhada;
+  const contaClass = showContaCorrente ? '' : 'detail-hidden';
+  const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
+  const infoColSpan = 1 + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
+  const colSpan = infoColSpan + 3;
+  const periodSummaryMap = new Map(
+    aggregateDetailByPeriod().map(item => [item.periodo, item])
+  );
+  const rows = buildDetailDisplayRows();
+
+  head.innerHTML = `
+    <tr>
+      <th class="detail-account-cell ${contaClass}">Conta Corrente</th>
+      <th class="detail-description-cell">Descrição</th>
+      <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
+      <th class="detail-saldo-cell">Saldo</th>
+      <th class="detail-juros-cell">Juros</th>
+      <th>Data</th>
+    </tr>
+  `;
 
   if (!rows.length) {
     body.innerHTML = `
@@ -733,6 +766,7 @@ function renderDetailTable() {
       const summary = periodSummaryMap.get(item.data) || { saldo: 0, juros: 0 };
       const saldoTotalClass = summary.saldo < 0 ? 'negative' : '';
       const jurosTotalClass = summary.juros < 0 ? 'negative' : '';
+      const linkedTotalClass = state.detailShowContaCorrente ? 'detail-month-total-linked' : '';
 
       html.push(`
         <tr class="detail-month-row">
@@ -741,8 +775,8 @@ function renderDetailTable() {
               <span>${item.data}</span>
             </div>
           </td>
-          <td class="detail-month-total-cell ${saldoTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
-          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass}">${state.detailShowJuros ? formatBRL(summary.juros) : ''}</td>
+          <td class="detail-month-total-cell ${saldoTotalClass} ${linkedTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatBRL(summary.juros) : ''}</td>
           <td class="detail-month-spacer-cell"></td>
         </tr>
       `);
@@ -756,8 +790,8 @@ function renderDetailTable() {
         <td class="detail-account-cell ${contaClass}">${item.conta_corrente}</td>
         <td class="detail-description-cell">${item.descricao}</td>
         <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
-        <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.saldo_valor === null ? '' : formatBRL(item.saldo_valor)}</td>
-        <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.juros_valor === null ? '' : formatBRL(item.juros_valor)}</td>
+        <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.rowType === 'saldo' ? formatBRL(item.saldo_valor) : ''}</td>
+        <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.rowType === 'juros' ? formatBRL(item.juros_valor) : ''}</td>
         <td>${item.data}</td>
       </tr>
     `);
