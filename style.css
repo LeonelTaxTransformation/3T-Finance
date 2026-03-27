@@ -511,3 +511,181 @@ body{
   max-height: calc(100vh - 40px);
   overflow-y: auto;
 }
+
+
+.details-shell{
+  display:grid;
+  gap:18px;
+}
+.details-company-filters{
+  margin-bottom:0;
+}
+.details-year-row{
+  margin:0;
+}
+.details-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px;
+}
+.details-check{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border:1px solid rgba(66, 92, 128, .24);
+  border-radius:12px;
+  background:#0d1524;
+  color:#d8e2f2;
+  font-size:13px;
+  font-weight:700;
+}
+.details-check input{
+  margin:0;
+  width:16px;
+  height:16px;
+  accent-color:#23d3ee;
+}
+.details-text-toggle{
+  border:1px solid rgba(66, 92, 128, .32);
+  background:#0f1726;
+  color:#e8eef8;
+  border-radius:12px;
+  padding:10px 14px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+.details-text-toggle.active{
+  border-color:#23d3ee;
+  color:#23d3ee;
+}
+.details-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+  gap:14px;
+}
+.detail-period-card{
+  border:1px solid rgba(66, 92, 128, .22);
+  background:#0a1220;
+  border-radius:16px;
+  padding:16px;
+}
+.detail-period-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.detail-period-label{
+  color:#8ea0bc;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.detail-period-total{
+  color:#f1f5fd;
+  font-size:22px;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.03em;
+}
+.detail-period-total.negative{
+  color:#ef4444;
+}
+.detail-period-breakdown{
+  display:grid;
+  gap:8px;
+}
+.detail-breakdown-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+  color:#dbe4f2;
+}
+.detail-breakdown-row span:first-child{
+  color:#8ea0bc;
+}
+.details-table-card{
+  border:1px solid rgba(66, 92, 128, .22);
+  background:#0a1220;
+  border-radius:16px;
+  overflow:auto;
+}
+.details-table{
+  width:100%;
+  min-width:820px;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.details-table thead th{
+  position:sticky;
+  top:0;
+  z-index:1;
+  background:#0d1524;
+  color:#8ea0bc;
+  text-align:left;
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  padding:14px 16px;
+  border-bottom:1px solid rgba(66, 92, 128, .24);
+}
+.details-table tbody td{
+  padding:13px 16px;
+  border-bottom:1px solid rgba(66, 92, 128, .16);
+  color:#e8eef8;
+  font-size:13px;
+  font-weight:600;
+  vertical-align:top;
+}
+.details-table tbody tr:last-child td{
+  border-bottom:none;
+}
+.details-table tbody tr.detail-month-row td{
+  background:#0b1322;
+  color:#23d3ee;
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  border-bottom:1px solid rgba(66, 92, 128, .24);
+}
+.details-table tbody tr.detail-saldo-row td:last-child.negative{
+  color:#ef4444;
+}
+.details-table tbody tr.detail-juros-row td:last-child{
+  color:#23d3ee;
+}
+.details-table tbody tr.detail-empty-row td{
+  color:#8ea0bc;
+  text-align:center;
+  padding:24px 16px;
+}
+.detail-hidden{
+  display:none;
+}
+.detail-description-cell{
+  min-width:180px;
+}
+.detail-description-detailed{
+  min-width:220px;
+}
+.detail-value-cell{
+  white-space:nowrap;
+}
+@media (max-width: 900px){
+  .details-toolbar{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .details-summary-grid{
+    grid-template-columns:1fr;
+  }
+}

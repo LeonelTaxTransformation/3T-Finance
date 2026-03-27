@@ -6,6 +6,11 @@ const state = {
   modalEntity: null,
   modalYear: null,
   axisMode: 'intermediario',
+  detailEntity: '__ALL__',
+  detailYear: null,
+  detailShowSaldo: true,
+  detailShowJuros: true,
+  detailShowDescricaoDetalhada: false,
 };
 
 const companyMap = Object.fromEntries(data.companies.map(c => [c.id, c]));
@@ -90,7 +95,7 @@ function toggleCompany(id) {
 }
 
 function paintFilters() {
-  document.querySelectorAll('.filter-chip').forEach(chip => {
+  document.querySelectorAll('#companyFilters .filter-chip').forEach(chip => {
     const id = chip.dataset.company;
     const active = state.selected.has(id);
     chip.classList.toggle('active', active);
@@ -371,117 +376,419 @@ function updateDetails() {
   });
 }
 
-function entityRows(entity) {
-  if (entity === "Todas as empresas") return data.rows.slice();
-  return data.rows.filter(r => r.empresa === entity);
+
+function detailEntityOptions() {
+  return activeEntities();
 }
 
-function availableYears(entity) {
-  return [...new Set(entityRows(entity).map(r => r.ano).filter(Boolean))].sort();
+function normalizeDetailEntity() {
+  const options = detailEntityOptions();
+  if (!options.length) {
+    state.detailEntity = '__ALL__';
+    return;
+  }
+
+  if (!state.selected.has('__ALL__') && options.length === 1) {
+    state.detailEntity = options[0];
+    return;
+  }
+
+  if (state.detailEntity !== '__ALL__' && !options.includes(state.detailEntity)) {
+    state.detailEntity = '__ALL__';
+  }
 }
 
-function renderYearDetails(entity, year) {
-  const rows = entityRows(entity).filter(r => r.ano === year);
+function detailEntitiesForView() {
+  const options = detailEntityOptions();
+  if (state.detailEntity === '__ALL__') return options;
+  return options.includes(state.detailEntity) ? [state.detailEntity] : [];
+}
 
-  const monthlyMap = new Map();
-  rows.forEach(row => {
-    const periodo = row.periodo || row.data_final || '-';
-    if (!monthlyMap.has(periodo)) {
-      monthlyMap.set(periodo, {
-        periodo,
-        data_final: row.data_final || '',
-        saldo_inicial: 0,
-        saldo_final: 0
-      });
-    }
-    const item = monthlyMap.get(periodo);
-    item.saldo_inicial += (row.saldo_inicial || 0);
-    item.saldo_final += (row.saldo_final || 0);
-    if (row.data_final && (!item.data_final || row.data_final > item.data_final)) {
-      item.data_final = row.data_final;
-    }
+function detailBalanceRows() {
+  const entities = new Set(detailEntitiesForView());
+  return (data.detail_balances || []).filter(item => entities.has(item.empresa));
+}
+
+function detailLaunchRows() {
+  const entities = new Set(detailEntitiesForView());
+  return (data.detail_rows || []).filter(item => entities.has(item.empresa));
+}
+
+function availableDetailYears() {
+  const years = new Set();
+
+  detailBalanceRows().forEach(item => {
+    if (item.ano) years.add(Number(item.ano));
   });
 
-  const orderedRows = Array.from(monthlyMap.values()).sort((a, b) => {
-    const aKey = a.data_final || `${String(a.periodo).slice(3, 7)}-${String(a.periodo).slice(0, 2)}-01`;
-    const bKey = b.data_final || `${String(b.periodo).slice(3, 7)}-${String(b.periodo).slice(0, 2)}-01`;
-    return String(aKey).localeCompare(String(bKey));
+  detailLaunchRows().forEach(item => {
+    if (item.ano) years.add(Number(item.ano));
   });
 
-  const saldoInicial = orderedRows.length ? (orderedRows[0].saldo_inicial || 0) : 0;
-  const saldoFinal = orderedRows.length ? (orderedRows[orderedRows.length - 1].saldo_final || 0) : 0;
-  const variacao = saldoFinal - saldoInicial;
-
-  const variationClass = variacao >= 0 ? 'positive' : 'negative';
-  document.getElementById('yearDetailGrid').innerHTML = `
-    <div class="year-detail-card">
-      <div class="year-detail-label">Saldo Inicial</div>
-      <div class="year-detail-value">${formatBRL(saldoInicial)}</div>
-    </div>
-    <div class="year-detail-card">
-      <div class="year-detail-label">Saldo Final</div>
-      <div class="year-detail-value">${formatBRL(saldoFinal)}</div>
-    </div>
-    <div class="year-detail-card">
-      <div class="year-detail-label">Variação</div>
-      <div class="year-detail-value ${variationClass}">${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}</div>
-    </div>
-  `;
-
-  const launchRows = orderedRows.slice(0, 12).map(row => {
-    const rowVar = (row.saldo_final || 0) - (row.saldo_inicial || 0);
-    const rowVarClass = rowVar >= 0 ? 'var-positive' : 'var-negative';
-    return `
-      <div class="launch-row">
-        <div class="launch-cell"><strong>${row.periodo}</strong></div>
-        <div class="launch-cell">${formatBRL(row.saldo_inicial || 0)}</div>
-        <div class="launch-cell">${formatBRL(row.saldo_final || 0)}</div>
-        <div class="launch-cell ${rowVarClass}">${rowVar < 0 ? '-' : ''}${formatBRL(Math.abs(rowVar))}</div>
-      </div>
-    `;
-  }).join('');
-
-  document.getElementById('addressBox').innerHTML = `
-    <div class="analysis-box">
-      <div class="analysis-title">Lançamentos de ${year}</div>
-      <div class="launch-list">
-        <div class="launch-row">
-          <div class="launch-head">Período</div>
-          <div class="launch-head">Saldo Inicial</div>
-          <div class="launch-head">Saldo Final</div>
-          <div class="launch-head">Variação</div>
-        </div>
-        ${launchRows || '<div class="analysis-item">Sem lançamentos para este ano.</div>'}
-      </div>
-    </div>
-  `;
+  return [...years].sort((a, b) => a - b);
 }
 
-function openDetailModal(entity) {
-  state.modalEntity = entity;
-  const years = availableYears(entity);
-  state.modalYear = years[0] || null;
+function normalizeDetailYear() {
+  const years = availableDetailYears();
+  if (!years.length) {
+    state.detailYear = null;
+    return;
+  }
+  if (!years.includes(state.detailYear)) {
+    state.detailYear = years[0];
+  }
+}
 
-  document.getElementById('modalTitle').textContent = `${entity} — Detalhes`;
-  const yearWrap = document.getElementById('yearChipRow');
-  yearWrap.innerHTML = '';
+function periodSortKey(period, year) {
+  const value = String(period || '');
+  const match = value.match(/^(\d{2})\/(\d{4})$/);
+  if (match) return `${match[2]}-${match[1]}`;
+  if (year) return `${year}-${value}`;
+  return value;
+}
+
+function daySortValue(day) {
+  const value = String(day || '');
+  const match = value.match(/^(\d{2})\/(\d{2})$/);
+  if (!match) return 99;
+  return Number(match[1]);
+}
+
+function createDetailCompanyChip(id, label, color) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'filter-chip detail-filter-chip';
+  chip.dataset.company = id;
+  chip.style.setProperty('--chip-color', color);
+  chip.innerHTML = `
+    <span class="filter-box" aria-hidden="true"></span>
+    <span>${label}</span>
+  `;
+  chip.addEventListener('click', () => {
+    state.detailEntity = id;
+    normalizeDetailYear();
+    updateDetails();
+  });
+  return chip;
+}
+
+function buildDetailCompanyFilters() {
+  const wrap = document.getElementById('detailCompanyFilters');
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+  wrap.appendChild(createDetailCompanyChip('__ALL__', 'Todas as empresas', companyMap['__ALL__'].color));
+
+  detailEntityOptions().forEach(id => {
+    const company = companyMap[id];
+    if (!company) return;
+    wrap.appendChild(createDetailCompanyChip(id, company.label, company.color));
+  });
+
+  paintDetailCompanyFilters();
+}
+
+function paintDetailCompanyFilters() {
+  document.querySelectorAll('#detailCompanyFilters .detail-filter-chip').forEach(chip => {
+    const id = chip.dataset.company;
+    const active = state.detailEntity === id;
+    const company = companyMap[id];
+    chip.classList.toggle('active', active);
+    chip.classList.toggle('inactive', !active);
+    chip.style.color = active ? company.color : '#b7c1cf';
+    const box = chip.querySelector('.filter-box');
+
+    if (active) {
+      box.innerHTML = '✓';
+      box.style.background = company.color;
+      box.style.borderColor = company.color;
+      box.style.color = '#08111b';
+      box.style.fontWeight = '900';
+      box.style.fontSize = '19px';
+      box.style.lineHeight = '1';
+      box.style.textAlign = 'center';
+    } else {
+      box.innerHTML = '';
+      box.style.background = 'rgba(7,12,22,.98)';
+      box.style.borderColor = 'rgba(160,178,205,.55)';
+      box.style.color = 'transparent';
+    }
+  });
+}
+
+function buildDetailYearChips() {
+  const wrap = document.getElementById('detailYearChipRow');
+  if (!wrap) return;
+
+  const years = availableDetailYears();
+  wrap.innerHTML = '';
 
   years.forEach(year => {
     const chip = document.createElement('button');
-    chip.className = `year-chip ${year === state.modalYear ? 'active' : ''}`;
+    chip.type = 'button';
+    chip.className = `year-chip ${year === state.detailYear ? 'active' : ''}`;
     chip.textContent = year;
     chip.addEventListener('click', () => {
-      state.modalYear = year;
-      document.querySelectorAll('.year-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      renderYearDetails(entity, year);
+      state.detailYear = year;
+      updateDetails();
     });
-    yearWrap.appendChild(chip);
+    wrap.appendChild(chip);
+  });
+}
+
+function aggregateDetailByPeriod() {
+  const monthlyMap = new Map();
+
+  detailBalanceRows()
+    .filter(item => !state.detailYear || item.ano === state.detailYear)
+    .forEach(item => {
+      const periodo = item.data || '-';
+      if (!monthlyMap.has(periodo)) {
+        monthlyMap.set(periodo, {
+          periodo,
+          ano: item.ano,
+          sortKey: periodSortKey(periodo, item.ano),
+          saldo: 0,
+          juros: 0,
+        });
+      }
+      monthlyMap.get(periodo).saldo += Number(item.valor || 0);
+    });
+
+  detailLaunchRows()
+    .filter(item => !state.detailYear || item.ano === state.detailYear)
+    .forEach(item => {
+      const periodo = item.data || '-';
+      if (!monthlyMap.has(periodo)) {
+        monthlyMap.set(periodo, {
+          periodo,
+          ano: item.ano,
+          sortKey: periodSortKey(periodo, item.ano),
+          saldo: 0,
+          juros: 0,
+        });
+      }
+      monthlyMap.get(periodo).juros += Number(item.valor || 0);
+    });
+
+  return Array.from(monthlyMap.values()).sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)));
+}
+
+function displayedDetailValue(saldo, juros) {
+  if (state.detailShowSaldo && state.detailShowJuros) return saldo - juros;
+  if (state.detailShowSaldo) return saldo;
+  if (state.detailShowJuros) return juros;
+  return 0;
+}
+
+function renderDetailSummary() {
+  const wrap = document.getElementById('detailSummaryGrid');
+  if (!wrap) return;
+
+  const rows = aggregateDetailByPeriod();
+
+  if (!rows.length) {
+    wrap.innerHTML = `
+      <div class="detail-period-card">
+        <div class="detail-period-head">
+          <div class="detail-period-label">Sem dados</div>
+        </div>
+        <div class="detail-period-breakdown">
+          <div class="detail-breakdown-row">
+            <span>Nenhum lançamento encontrado para os filtros selecionados.</span>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  wrap.innerHTML = rows.map(item => {
+    const total = displayedDetailValue(item.saldo, item.juros);
+    const totalClass = total < 0 ? 'negative' : '';
+    const breakdown = [];
+
+    if (state.detailShowSaldo) {
+      breakdown.push(`
+        <div class="detail-breakdown-row">
+          <span>Saldo Final</span>
+          <strong>${formatBRL(item.saldo)}</strong>
+        </div>
+      `);
+    }
+
+    if (state.detailShowJuros) {
+      breakdown.push(`
+        <div class="detail-breakdown-row">
+          <span>Juros</span>
+          <strong>${formatBRL(item.juros)}</strong>
+        </div>
+      `);
+    }
+
+    return `
+      <div class="detail-period-card">
+        <div class="detail-period-head">
+          <div class="detail-period-label">${item.periodo}</div>
+          <div class="detail-period-total ${totalClass}">${formatBRL(total)}</div>
+        </div>
+        <div class="detail-period-breakdown">
+          ${breakdown.join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDetailTable() {
+  const head = document.getElementById('detailTableHead');
+  const body = document.getElementById('detailTableBody');
+  if (!head || !body) return;
+
+  const showDetailedDescription = state.detailShowDescricaoDetalhada;
+  const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
+
+  head.innerHTML = `
+    <tr>
+      <th>Empresa</th>
+      <th>Conta Corrente</th>
+      <th class="detail-description-cell">Descrição</th>
+      <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
+      <th>Valor</th>
+      <th>Data</th>
+    </tr>
+  `;
+
+  const rows = [];
+
+  if (state.detailShowSaldo) {
+    detailBalanceRows()
+      .filter(item => !state.detailYear || item.ano === state.detailYear)
+      .forEach(item => {
+        rows.push({
+          empresa: item.empresa,
+          conta_corrente: item.conta_corrente,
+          descricao: 'Saldo Final',
+          descricao_detalhada: 'Saldo final do período',
+          valor: Number(item.valor || 0),
+          data: item.data || '-',
+          dia: '',
+          sortKey: periodSortKey(item.data, item.ano),
+          rowType: 'saldo',
+        });
+      });
+  }
+
+  if (state.detailShowJuros) {
+    detailLaunchRows()
+      .filter(item => !state.detailYear || item.ano === state.detailYear)
+      .forEach(item => {
+        rows.push({
+          empresa: item.empresa,
+          conta_corrente: item.conta_corrente,
+          descricao: item.descricao || '-',
+          descricao_detalhada: item.descricao_detalhada || '-',
+          valor: Number(item.valor || 0),
+          data: item.data || '-',
+          dia: item.dia || '',
+          sortKey: periodSortKey(item.data, item.ano),
+          rowType: 'juros',
+        });
+      });
+  }
+
+  rows.sort((a, b) => {
+    const periodCompare = String(a.sortKey).localeCompare(String(b.sortKey));
+    if (periodCompare !== 0) return periodCompare;
+    const typeCompare = (a.rowType === 'saldo' ? 0 : 1) - (b.rowType === 'saldo' ? 0 : 1);
+    if (typeCompare !== 0) return typeCompare;
+    const dayCompare = daySortValue(a.dia) - daySortValue(b.dia);
+    if (dayCompare !== 0) return dayCompare;
+    return String(a.conta_corrente).localeCompare(String(b.conta_corrente));
   });
 
-  if (state.modalYear) renderYearDetails(entity, state.modalYear);
+  if (!rows.length) {
+    body.innerHTML = `
+      <tr class="detail-empty-row">
+        <td colspan="${showDetailedDescription ? 6 : 5}">Nenhum lançamento encontrado para os filtros selecionados.</td>
+      </tr>
+    `;
+    return;
+  }
 
-  document.getElementById('detailModal').classList.remove('hidden');
+  let currentPeriod = null;
+  const html = [];
+
+  rows.forEach(item => {
+    if (item.data !== currentPeriod) {
+      currentPeriod = item.data;
+      html.push(`
+        <tr class="detail-month-row">
+          <td colspan="${showDetailedDescription ? 6 : 5}">${item.data}</td>
+        </tr>
+      `);
+    }
+
+    const valueClass = item.rowType === 'saldo' && item.valor < 0 ? 'negative' : '';
+    html.push(`
+      <tr class="detail-${item.rowType}-row">
+        <td>${item.empresa}</td>
+        <td>${item.conta_corrente}</td>
+        <td class="detail-description-cell">${item.descricao}</td>
+        <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
+        <td class="detail-value-cell ${valueClass}">${formatBRL(item.valor)}</td>
+        <td>${item.data}</td>
+      </tr>
+    `);
+  });
+
+  body.innerHTML = html.join('');
+}
+
+function syncDetailControls() {
+  const saldoToggle = document.getElementById('detailToggleSaldo');
+  const jurosToggle = document.getElementById('detailToggleJuros');
+  const descriptionButton = document.getElementById('detailDescriptionToggle');
+
+  if (saldoToggle) saldoToggle.checked = state.detailShowSaldo;
+  if (jurosToggle) jurosToggle.checked = state.detailShowJuros;
+  if (descriptionButton) {
+    descriptionButton.classList.toggle('active', state.detailShowDescricaoDetalhada);
+  }
+}
+
+function updateDetails() {
+  normalizeDetailEntity();
+  normalizeDetailYear();
+  buildDetailCompanyFilters();
+  buildDetailYearChips();
+  syncDetailControls();
+  renderDetailSummary();
+  renderDetailTable();
+}
+
+const detailToggleSaldo = document.getElementById('detailToggleSaldo');
+if (detailToggleSaldo) {
+  detailToggleSaldo.addEventListener('change', (e) => {
+    state.detailShowSaldo = e.target.checked;
+    updateDetails();
+  });
+}
+
+const detailToggleJuros = document.getElementById('detailToggleJuros');
+if (detailToggleJuros) {
+  detailToggleJuros.addEventListener('change', (e) => {
+    state.detailShowJuros = e.target.checked;
+    updateDetails();
+  });
+}
+
+const detailDescriptionToggle = document.getElementById('detailDescriptionToggle');
+if (detailDescriptionToggle) {
+  detailDescriptionToggle.addEventListener('click', () => {
+    state.detailShowDescricaoDetalhada = !state.detailShowDescricaoDetalhada;
+    updateDetails();
+  });
 }
 
 function closeModal() {

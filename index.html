@@ -70,7 +70,32 @@
 
     <section class="panel-card details-panel">
       <h2>Detalhes por Período</h2>
-      <div class="company-summary-list" id="detailsList"></div>
+      <div class="details-shell">
+        <div class="filter-bar details-company-filters" id="detailCompanyFilters"></div>
+
+        <div class="year-chip-row details-year-row" id="detailYearChipRow"></div>
+
+        <div class="details-toolbar">
+          <label class="details-check">
+            <input type="checkbox" id="detailToggleSaldo" checked />
+            <span>Saldo</span>
+          </label>
+          <label class="details-check">
+            <input type="checkbox" id="detailToggleJuros" checked />
+            <span>Juros</span>
+          </label>
+          <button class="details-text-toggle" id="detailDescriptionToggle" type="button">Descrição detalhada</button>
+        </div>
+
+        <div class="details-summary-grid" id="detailSummaryGrid"></div>
+
+        <div class="details-table-card">
+          <table class="details-table">
+            <thead id="detailTableHead"></thead>
+            <tbody id="detailTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <footer class="page-footer">
