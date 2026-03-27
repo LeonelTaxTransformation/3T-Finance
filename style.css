@@ -681,6 +681,16 @@ body{
 .detail-month-total-linked{
   color:#23d3ee !important;
 }
+
+.detail-month-total-neutral{
+  color:#f0f5fd !important;
+}
+.detail-month-total-neutral.negative{
+  color:#f0f5fd !important;
+}
+.detail-total-label{
+  color:#9fb2d1;
+}
 .detail-month-spacer-cell{
   color:transparent;
 }

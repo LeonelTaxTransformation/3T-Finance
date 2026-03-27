@@ -800,6 +800,7 @@ function renderDetailTable() {
       const jurosTotalClass = summary.juros < 0 ? 'negative' : '';
       const saldoMenosJurosTotalClass = saldoMenosJurosTotal < 0 ? 'negative' : '';
       const linkedTotalClass = state.detailShowContaCorrente ? 'detail-month-total-linked' : '';
+      const neutralMonthlyTotalClass = (showOnlySaldo || showOnlyJuros) ? 'detail-month-total-neutral' : '';
 
       html.push(`
         <tr class="detail-month-row">
@@ -808,9 +809,9 @@ function renderDetailTable() {
               <span>${item.data}</span>
             </div>
           </td>
-          <td class="detail-month-total-cell ${saldoTotalClass} ${linkedTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
-          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatNegativeBRL(summary.juros) : ''}</td>
-          <td class="detail-month-total-cell detail-month-total-net ${saldoMenosJurosClass} ${saldoMenosJurosTotalClass} ${linkedTotalClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosTotal) : ''}</td>
+          <td class="detail-month-total-cell ${neutralMonthlyTotalClass} ${saldoTotalClass} ${linkedTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-juros ${neutralMonthlyTotalClass} ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatNegativeBRL(summary.juros) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-net ${saldoMenosJurosClass} ${neutralMonthlyTotalClass} ${saldoMenosJurosTotalClass} ${linkedTotalClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosTotal) : ''}</td>
           <td class="detail-month-spacer-cell"></td>
         </tr>
       `);
@@ -856,10 +857,10 @@ function renderDetailTable() {
     const totalJurosClass = yearlyTotals.juros < 0 ? 'negative' : '';
 
     html.push(`
-      <tr class="detail-month-row">
+      <tr class="detail-month-row detail-grand-total-row">
         <td colspan="${infoColSpan}" class="detail-month-label-cell">
           <div class="detail-month-row-content">
-            <span>Total</span>
+            <span class="detail-total-label">Total</span>
           </div>
         </td>
         <td class="detail-month-total-cell ${totalSaldoClass}">${showOnlySaldo ? formatBRL(yearlyTotals.saldo) : ''}</td>
