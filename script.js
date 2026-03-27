@@ -779,6 +779,12 @@ function renderDetailTable() {
 
   let currentPeriod = null;
   const html = [];
+  const periodRowCounts = rows.reduce((acc, item) => {
+    acc[item.data] = (acc[item.data] || 0) + 1;
+    return acc;
+  }, {});
+  const showOnlySaldo = state.detailShowSaldo && !state.detailShowJuros && !showSaldoMenosJuros;
+  const showOnlyJuros = state.detailShowJuros && !state.detailShowSaldo && !showSaldoMenosJuros;
 
   rows.forEach(item => {
     if (item.data !== currentPeriod) {
@@ -804,6 +810,9 @@ function renderDetailTable() {
         </tr>
       `);
     }
+
+    const shouldSkipSingleDetailRow = (showOnlySaldo || showOnlyJuros) && periodRowCounts[item.data] === 1;
+    if (shouldSkipSingleDetailRow) return;
 
     const neutralDetailValueClass = showDescriptionLabel ? 'detail-value-neutral' : '';
     const saldoValueClass = showDescriptionLabel
