@@ -10,6 +10,7 @@ const state = {
   detailYear: null,
   detailShowSaldo: true,
   detailShowJuros: true,
+  detailShowSaldoMenosJuros: false,
   detailShowContaCorrente: false,
   detailShowDescricaoDetalhada: false,
 };
@@ -582,6 +583,10 @@ function displayedDetailValue(saldo, juros) {
   return 0;
 }
 
+function saldoMenosJurosValue(saldo, juros) {
+  return (Number(saldo) || 0) - (Number(juros) || 0);
+}
+
 function renderDetailSummary() {
   const wrap = document.getElementById('detailSummaryGrid');
   if (!wrap) return;
@@ -728,10 +733,12 @@ function renderDetailTable() {
 
   const showContaCorrente = state.detailShowContaCorrente;
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
+  const showSaldoMenosJuros = state.detailShowSaldoMenosJuros;
   const contaClass = showContaCorrente ? '' : 'detail-hidden';
   const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
+  const saldoMenosJurosClass = showSaldoMenosJuros ? '' : 'detail-hidden';
   const infoColSpan = 1 + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
-  const colSpan = infoColSpan + 3;
+  const colSpan = infoColSpan + 3 + (showSaldoMenosJuros ? 1 : 0);
   const periodSummaryMap = new Map(
     aggregateDetailByPeriod().map(item => [item.periodo, item])
   );
@@ -744,6 +751,7 @@ function renderDetailTable() {
       <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
       <th class="detail-saldo-cell">Saldo</th>
       <th class="detail-juros-cell">Juros</th>
+      <th class="detail-saldo-menos-juros-cell ${saldoMenosJurosClass}">Saldo - Juros</th>
       <th>Data</th>
     </tr>
   `;
@@ -764,8 +772,10 @@ function renderDetailTable() {
     if (item.data !== currentPeriod) {
       currentPeriod = item.data;
       const summary = periodSummaryMap.get(item.data) || { saldo: 0, juros: 0 };
+      const saldoMenosJurosTotal = saldoMenosJurosValue(summary.saldo, summary.juros);
       const saldoTotalClass = summary.saldo < 0 ? 'negative' : '';
       const jurosTotalClass = summary.juros < 0 ? 'negative' : '';
+      const saldoMenosJurosTotalClass = saldoMenosJurosTotal < 0 ? 'negative' : '';
       const linkedTotalClass = state.detailShowContaCorrente ? 'detail-month-total-linked' : '';
 
       html.push(`
@@ -777,6 +787,7 @@ function renderDetailTable() {
           </td>
           <td class="detail-month-total-cell ${saldoTotalClass} ${linkedTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
           <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatBRL(summary.juros) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-net ${saldoMenosJurosClass} ${saldoMenosJurosTotalClass} ${linkedTotalClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosTotal) : ''}</td>
           <td class="detail-month-spacer-cell"></td>
         </tr>
       `);
@@ -784,6 +795,10 @@ function renderDetailTable() {
 
     const saldoValueClass = item.rowType === 'saldo' && Number(item.saldo_valor || 0) < 0 ? 'negative' : '';
     const jurosValueClass = item.rowType === 'juros' && Number(item.juros_valor || 0) < 0 ? 'negative' : '';
+    const saldoMenosJurosRowValue = item.rowType === 'saldo'
+      ? Number(item.saldo_valor || 0)
+      : (Number(item.juros_valor || 0) * -1);
+    const saldoMenosJurosValueClass = saldoMenosJurosRowValue < 0 ? 'negative' : '';
 
     html.push(`
       <tr class="detail-${item.rowType}-row">
@@ -792,6 +807,7 @@ function renderDetailTable() {
         <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
         <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.rowType === 'saldo' ? formatBRL(item.saldo_valor) : ''}</td>
         <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.rowType === 'juros' ? formatBRL(item.juros_valor) : ''}</td>
+        <td class="detail-value-cell detail-saldo-menos-juros-value ${saldoMenosJurosClass} ${saldoMenosJurosValueClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosRowValue) : ''}</td>
         <td>${item.data}</td>
       </tr>
     `);
@@ -803,11 +819,13 @@ function renderDetailTable() {
 function syncDetailControls() {
   const saldoToggle = document.getElementById('detailToggleSaldo');
   const jurosToggle = document.getElementById('detailToggleJuros');
+  const saldoMenosJurosToggle = document.getElementById('detailToggleSaldoMenosJuros');
   const accountButton = document.getElementById('detailAccountToggle');
   const descriptionButton = document.getElementById('detailDescriptionToggle');
 
   if (saldoToggle) saldoToggle.checked = state.detailShowSaldo;
   if (jurosToggle) jurosToggle.checked = state.detailShowJuros;
+  if (saldoMenosJurosToggle) saldoMenosJurosToggle.checked = state.detailShowSaldoMenosJuros;
   if (accountButton) {
     accountButton.classList.toggle('active', state.detailShowContaCorrente);
   }
@@ -837,6 +855,14 @@ const detailToggleJuros = document.getElementById('detailToggleJuros');
 if (detailToggleJuros) {
   detailToggleJuros.addEventListener('change', (e) => {
     state.detailShowJuros = e.target.checked;
+    updateDetails();
+  });
+}
+
+const detailToggleSaldoMenosJuros = document.getElementById('detailToggleSaldoMenosJuros');
+if (detailToggleSaldoMenosJuros) {
+  detailToggleSaldoMenosJuros.addEventListener('change', (e) => {
+    state.detailShowSaldoMenosJuros = e.target.checked;
     updateDetails();
   });
 }

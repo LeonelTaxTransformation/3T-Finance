@@ -703,10 +703,14 @@ body{
 }
 .detail-saldo-cell,
 .detail-juros-cell,
+.detail-saldo-menos-juros-cell,
 .detail-value-cell{
   white-space:nowrap;
 }
 .detail-saldo-value.negative{
+  color:#ef4444;
+}
+.detail-saldo-menos-juros-value.negative{
   color:#ef4444;
 }
 .detail-juros-value{
