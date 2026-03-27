@@ -253,26 +253,14 @@ function updateKPIs() {
   const totalJuros = rows.reduce((acc, row) => acc + Math.abs(Number(row.valor) || 0), 0);
 
   const totalText = totalJuros > 0 ? formatNegativeBRL(totalJuros) : formatBRL(0);
-  document.getElementById('saldoFinalValue').textContent = totalText;
-  document.getElementById('saldoInicialValue').textContent = totalText;
 
-  const variacaoEl = document.getElementById('variacaoValue');
-  const arrowEl = document.querySelector('.summary-arrow');
-  const variacao = chartVariationValue(rows);
-  const positive = variacao >= 0;
-
-  variacaoEl.textContent = `${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}`;
-  variacaoEl.classList.toggle('summary-positive', positive);
-  variacaoEl.classList.toggle('summary-negative', !positive);
-
-  if (arrowEl) {
-    arrowEl.textContent = positive ? '↗' : '↘';
-    arrowEl.style.color = positive ? '#22c55e' : '#ff3d3d';
-  }
+  const saldoFinalEl = document.getElementById('saldoFinalValue');
+  if (saldoFinalEl) saldoFinalEl.textContent = totalText;
 
   const entityCount = state.selected.has("__ALL__") ? data.companies.length - 1 : state.selected.size;
   const periodLabel = state.chartYear === null ? 'Todos os períodos' : String(state.chartYear);
-  document.getElementById('saldoFinalSub').textContent = `${rows.length} lançamentos · ${entityCount} empresas · ${periodLabel}`;
+  const saldoFinalSubEl = document.getElementById('saldoFinalSub');
+  if (saldoFinalSubEl) saldoFinalSubEl.textContent = `${rows.length} lançamentos · ${entityCount} empresas · ${periodLabel}`;
 }
 
 function sortedPeriods(rows) {

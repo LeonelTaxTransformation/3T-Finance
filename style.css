@@ -156,7 +156,7 @@ body{
 
 .summary-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:minmax(0, 1fr);
   gap:18px;
   margin-bottom:28px;
 }
@@ -393,7 +393,7 @@ body{
 }
 .year-detail-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:minmax(0, 1fr);
   gap:14px;
 }
 .year-detail-card{
