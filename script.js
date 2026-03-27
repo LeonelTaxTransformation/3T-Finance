@@ -10,6 +10,7 @@ const state = {
   detailYear: null,
   detailShowSaldo: true,
   detailShowJuros: true,
+  detailShowContaCorrente: false,
   detailShowDescricaoDetalhada: false,
 };
 
@@ -645,20 +646,23 @@ function renderDetailTable() {
   const body = document.getElementById('detailTableBody');
   if (!head || !body) return;
 
+  const showContaCorrente = state.detailShowContaCorrente;
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
+  const contaClass = showContaCorrente ? '' : 'detail-hidden';
   const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
-  const colSpan = showDetailedDescription ? 6 : 5;
+  const infoColSpan = 1 + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
+  const colSpan = infoColSpan + 3;
   const periodSummaryMap = new Map(
     aggregateDetailByPeriod().map(item => [item.periodo, item])
   );
 
   head.innerHTML = `
     <tr>
-      <th>Empresa</th>
-      <th>Conta Corrente</th>
+      <th class="detail-account-cell ${contaClass}">Conta Corrente</th>
       <th class="detail-description-cell">Descrição</th>
       <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
-      <th>Valor</th>
+      <th class="detail-saldo-cell">Saldo</th>
+      <th class="detail-juros-cell">Juros</th>
       <th>Data</th>
     </tr>
   `;
@@ -670,11 +674,11 @@ function renderDetailTable() {
       .filter(item => !state.detailYear || item.ano === state.detailYear)
       .forEach(item => {
         rows.push({
-          empresa: item.empresa,
           conta_corrente: item.conta_corrente,
           descricao: 'Saldo Final',
           descricao_detalhada: 'Saldo final do período',
-          valor: Number(item.valor || 0),
+          saldo_valor: Number(item.valor || 0),
+          juros_valor: null,
           data: item.data || '-',
           dia: '',
           sortKey: periodSortKey(item.data, item.ano),
@@ -688,11 +692,11 @@ function renderDetailTable() {
       .filter(item => !state.detailYear || item.ano === state.detailYear)
       .forEach(item => {
         rows.push({
-          empresa: item.empresa,
           conta_corrente: item.conta_corrente,
           descricao: item.descricao || '-',
           descricao_detalhada: item.descricao_detalhada || '-',
-          valor: Number(item.valor || 0),
+          saldo_valor: null,
+          juros_valor: Number(item.valor || 0),
           data: item.data || '-',
           dia: item.dia || '',
           sortKey: periodSortKey(item.data, item.ano),
@@ -727,29 +731,33 @@ function renderDetailTable() {
     if (item.data !== currentPeriod) {
       currentPeriod = item.data;
       const summary = periodSummaryMap.get(item.data) || { saldo: 0, juros: 0 };
-      const periodTotal = displayedDetailValue(summary.saldo, summary.juros);
-      const totalClass = periodTotal < 0 ? 'negative' : '';
+      const saldoTotalClass = summary.saldo < 0 ? 'negative' : '';
+      const jurosTotalClass = summary.juros < 0 ? 'negative' : '';
 
       html.push(`
         <tr class="detail-month-row">
-          <td colspan="${colSpan}">
+          <td colspan="${infoColSpan}" class="detail-month-label-cell">
             <div class="detail-month-row-content">
               <span>${item.data}</span>
-              <strong class="detail-month-total ${totalClass}">${formatBRL(periodTotal)}</strong>
             </div>
           </td>
+          <td class="detail-month-total-cell ${saldoTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass}">${state.detailShowJuros ? formatBRL(summary.juros) : ''}</td>
+          <td class="detail-month-spacer-cell"></td>
         </tr>
       `);
     }
 
-    const valueClass = item.rowType === 'saldo' && item.valor < 0 ? 'negative' : '';
+    const saldoValueClass = item.rowType === 'saldo' && Number(item.saldo_valor || 0) < 0 ? 'negative' : '';
+    const jurosValueClass = item.rowType === 'juros' && Number(item.juros_valor || 0) < 0 ? 'negative' : '';
+
     html.push(`
       <tr class="detail-${item.rowType}-row">
-        <td>${item.empresa}</td>
-        <td>${item.conta_corrente}</td>
+        <td class="detail-account-cell ${contaClass}">${item.conta_corrente}</td>
         <td class="detail-description-cell">${item.descricao}</td>
         <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
-        <td class="detail-value-cell ${valueClass}">${formatBRL(item.valor)}</td>
+        <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.saldo_valor === null ? '' : formatBRL(item.saldo_valor)}</td>
+        <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.juros_valor === null ? '' : formatBRL(item.juros_valor)}</td>
         <td>${item.data}</td>
       </tr>
     `);
@@ -761,10 +769,14 @@ function renderDetailTable() {
 function syncDetailControls() {
   const saldoToggle = document.getElementById('detailToggleSaldo');
   const jurosToggle = document.getElementById('detailToggleJuros');
+  const accountButton = document.getElementById('detailAccountToggle');
   const descriptionButton = document.getElementById('detailDescriptionToggle');
 
   if (saldoToggle) saldoToggle.checked = state.detailShowSaldo;
   if (jurosToggle) jurosToggle.checked = state.detailShowJuros;
+  if (accountButton) {
+    accountButton.classList.toggle('active', state.detailShowContaCorrente);
+  }
   if (descriptionButton) {
     descriptionButton.classList.toggle('active', state.detailShowDescricaoDetalhada);
   }
@@ -791,6 +803,14 @@ const detailToggleJuros = document.getElementById('detailToggleJuros');
 if (detailToggleJuros) {
   detailToggleJuros.addEventListener('change', (e) => {
     state.detailShowJuros = e.target.checked;
+    updateDetails();
+  });
+}
+
+const detailAccountToggle = document.getElementById('detailAccountToggle');
+if (detailAccountToggle) {
+  detailAccountToggle.addEventListener('click', () => {
+    state.detailShowContaCorrente = !state.detailShowContaCorrente;
     updateDetails();
   });
 }

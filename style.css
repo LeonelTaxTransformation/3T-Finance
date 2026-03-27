@@ -657,26 +657,29 @@ body{
   letter-spacing:.04em;
   border-bottom:1px solid rgba(66, 92, 128, .24);
 }
+.detail-month-label-cell{
+  color:#23d3ee;
+}
 .detail-month-row-content{
   display:flex;
   align-items:center;
-  justify-content:space-between;
   gap:16px;
 }
-.detail-month-total{
-  color:#f1f5fd;
-  font-size:14px;
-  font-weight:800;
-  letter-spacing:0;
+.detail-month-total-cell{
+  color:#f1f5fd !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  letter-spacing:0 !important;
+  white-space:nowrap;
 }
-.detail-month-total.negative{
-  color:#ef4444;
+.detail-month-total-cell.negative{
+  color:#ef4444 !important;
 }
-.details-table tbody tr.detail-saldo-row td:last-child.negative{
-  color:#ef4444;
+.detail-month-total-juros{
+  color:#23d3ee !important;
 }
-.details-table tbody tr.detail-juros-row td:last-child{
-  color:#23d3ee;
+.detail-month-spacer-cell{
+  color:transparent;
 }
 .details-table tbody tr.detail-empty-row td{
   color:#8ea0bc;
@@ -686,14 +689,28 @@ body{
 .detail-hidden{
   display:none;
 }
+.detail-account-cell{
+  min-width:200px;
+}
 .detail-description-cell{
   min-width:180px;
 }
 .detail-description-detailed{
   min-width:220px;
 }
+.detail-saldo-cell,
+.detail-juros-cell,
 .detail-value-cell{
   white-space:nowrap;
+}
+.detail-saldo-value.negative{
+  color:#ef4444;
+}
+.detail-juros-value{
+  color:#23d3ee;
+}
+.detail-juros-value.negative{
+  color:#ef4444;
 }
 @media (max-width: 900px){
   .details-toolbar{
