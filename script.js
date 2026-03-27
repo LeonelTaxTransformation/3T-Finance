@@ -44,6 +44,10 @@ function formatBRL(value) {
   return (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function formatNegativeBRL(value) {
+  return `-${formatBRL(Math.abs(Number(value) || 0))}`;
+}
+
 function activeEntities() {
   if (state.selected.has("__ALL__")) {
     return data.companies.filter(c => c.id !== "__ALL__").map(c => c.id);
@@ -804,7 +808,7 @@ function renderDetailTable() {
             </div>
           </td>
           <td class="detail-month-total-cell ${saldoTotalClass} ${linkedTotalClass}">${state.detailShowSaldo ? formatBRL(summary.saldo) : ''}</td>
-          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatBRL(summary.juros) : ''}</td>
+          <td class="detail-month-total-cell detail-month-total-juros ${jurosTotalClass} ${linkedTotalClass}">${state.detailShowJuros ? formatNegativeBRL(summary.juros) : ''}</td>
           <td class="detail-month-total-cell detail-month-total-net ${saldoMenosJurosClass} ${saldoMenosJurosTotalClass} ${linkedTotalClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosTotal) : ''}</td>
           <td class="detail-month-spacer-cell"></td>
         </tr>
@@ -834,7 +838,7 @@ function renderDetailTable() {
         <td class="detail-description-cell ${descriptionClass}">${showDescriptionLabel ? item.descricao : ''}</td>
         <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
         <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.rowType === 'saldo' ? formatBRL(item.saldo_valor) : ''}</td>
-        <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.rowType === 'juros' ? formatBRL(item.juros_valor) : ''}</td>
+        <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.rowType === 'juros' ? formatNegativeBRL(item.juros_valor) : ''}</td>
         <td class="detail-value-cell detail-saldo-menos-juros-value ${saldoMenosJurosClass} ${saldoMenosJurosValueClass}">${showSaldoMenosJuros ? formatBRL(saldoMenosJurosRowValue) : ''}</td>
         <td>${item.data}</td>
       </tr>
