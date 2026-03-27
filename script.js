@@ -648,11 +648,16 @@ function renderDetailSummary() {
 
 
 
+function shouldShowDetailDescriptionLabel() {
+  return state.detailShowSaldo && state.detailShowJuros;
+}
+
 function buildDetailDisplayRows() {
   const rows = [];
   const grouped = new Map();
   const showContaCorrente = state.detailShowContaCorrente;
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
+  const showDescriptionLabel = shouldShowDetailDescriptionLabel();
 
   if (state.detailShowSaldo) {
     detailBalanceRows()
@@ -693,8 +698,9 @@ function buildDetailDisplayRows() {
   }
 
   rows.forEach(item => {
-    const keyParts = [item.data, item.rowType, item.descricao];
+    const keyParts = [item.data, item.rowType];
 
+    if (showDescriptionLabel) keyParts.push(item.descricao || '');
     if (showDetailedDescription) keyParts.push(item.descricao_detalhada || '');
     if (showContaCorrente) keyParts.push(item.conta_corrente || '');
 
@@ -734,10 +740,16 @@ function renderDetailTable() {
   const showContaCorrente = state.detailShowContaCorrente;
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
   const showSaldoMenosJuros = state.detailShowSaldoMenosJuros;
+  const showDescriptionLabel = shouldShowDetailDescriptionLabel();
+  const keepDescriptionSpacer = !showDescriptionLabel && !showContaCorrente && !showDetailedDescription;
+  const showDescriptionColumn = showDescriptionLabel || keepDescriptionSpacer;
   const contaClass = showContaCorrente ? '' : 'detail-hidden';
+  const descriptionClass = showDescriptionColumn
+    ? (showDescriptionLabel ? '' : 'detail-description-neutral')
+    : 'detail-hidden';
   const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
   const saldoMenosJurosClass = showSaldoMenosJuros ? '' : 'detail-hidden';
-  const infoColSpan = 1 + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
+  const infoColSpan = (showDescriptionColumn ? 1 : 0) + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
   const colSpan = infoColSpan + 3 + (showSaldoMenosJuros ? 1 : 0);
   const periodSummaryMap = new Map(
     aggregateDetailByPeriod().map(item => [item.periodo, item])
@@ -747,7 +759,7 @@ function renderDetailTable() {
   head.innerHTML = `
     <tr>
       <th class="detail-account-cell ${contaClass}">Conta Corrente</th>
-      <th class="detail-description-cell">Descrição</th>
+      <th class="detail-description-cell ${descriptionClass}">${showDescriptionLabel ? 'Descrição' : ''}</th>
       <th class="detail-description-detailed ${detailedClass}">Descrição detalhada</th>
       <th class="detail-saldo-cell">Saldo</th>
       <th class="detail-juros-cell">Juros</th>
@@ -793,17 +805,24 @@ function renderDetailTable() {
       `);
     }
 
-    const saldoValueClass = item.rowType === 'saldo' && Number(item.saldo_valor || 0) < 0 ? 'negative' : '';
-    const jurosValueClass = item.rowType === 'juros' && Number(item.juros_valor || 0) < 0 ? 'negative' : '';
+    const neutralDetailValueClass = showDescriptionLabel ? 'detail-value-neutral' : '';
+    const saldoValueClass = showDescriptionLabel
+      ? neutralDetailValueClass
+      : (item.rowType === 'saldo' && Number(item.saldo_valor || 0) < 0 ? 'negative' : '');
+    const jurosValueClass = showDescriptionLabel
+      ? neutralDetailValueClass
+      : (item.rowType === 'juros' && Number(item.juros_valor || 0) < 0 ? 'negative' : '');
     const saldoMenosJurosRowValue = item.rowType === 'saldo'
       ? Number(item.saldo_valor || 0)
       : (Number(item.juros_valor || 0) * -1);
-    const saldoMenosJurosValueClass = saldoMenosJurosRowValue < 0 ? 'negative' : '';
+    const saldoMenosJurosValueClass = showDescriptionLabel
+      ? 'detail-value-neutral'
+      : (saldoMenosJurosRowValue < 0 ? 'negative' : '');
 
     html.push(`
       <tr class="detail-${item.rowType}-row">
         <td class="detail-account-cell ${contaClass}">${item.conta_corrente}</td>
-        <td class="detail-description-cell">${item.descricao}</td>
+        <td class="detail-description-cell ${descriptionClass}">${showDescriptionLabel ? item.descricao : ''}</td>
         <td class="detail-description-detailed ${detailedClass}">${item.descricao_detalhada}</td>
         <td class="detail-value-cell detail-saldo-value ${saldoValueClass}">${item.rowType === 'saldo' ? formatBRL(item.saldo_valor) : ''}</td>
         <td class="detail-value-cell detail-juros-value ${jurosValueClass}">${item.rowType === 'juros' ? formatBRL(item.juros_valor) : ''}</td>

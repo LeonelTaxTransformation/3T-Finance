@@ -692,6 +692,14 @@ body{
 .detail-hidden{
   display:none;
 }
+
+.detail-description-neutral{
+  color:transparent;
+}
+.detail-value-neutral{
+  color:#f0f5fd !important;
+}
+
 .detail-account-cell{
   min-width:200px;
 }
