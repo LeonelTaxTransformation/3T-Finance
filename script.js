@@ -6,6 +6,7 @@ const state = {
   modalEntity: null,
   modalYear: null,
   axisMode: 'intermediario',
+  chartYear: null,
   detailEntity: '__ALL__',
   detailYear: null,
   detailShowSaldo: true,
@@ -126,23 +127,141 @@ function paintFilters() {
   });
 }
 
+
+function availableChartYears() {
+  return [...new Set(data.detail_rows.map(item => Number(item.ano)).filter(Boolean))].sort((a, b) => a - b);
+}
+
+function normalizeChartYear() {
+  if (state.chartYear === null) return;
+  const years = availableChartYears();
+  if (!years.includes(Number(state.chartYear))) {
+    state.chartYear = null;
+  }
+}
+
+function buildChartYearChips() {
+  const wrap = document.getElementById('chartYearChipRow');
+  if (!wrap) return;
+
+  normalizeChartYear();
+  wrap.innerHTML = '';
+
+  const allChip = document.createElement('button');
+  allChip.type = 'button';
+  allChip.className = `year-chip chart-year-chip chart-year-chip-all ${state.chartYear === null ? 'active' : ''}`;
+  allChip.textContent = 'Todos os períodos';
+  allChip.addEventListener('click', () => {
+    state.chartYear = null;
+    buildChartYearChips();
+    updateKPIs();
+    updateChart();
+  });
+  wrap.appendChild(allChip);
+
+  availableChartYears().forEach(year => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `year-chip chart-year-chip ${Number(state.chartYear) === Number(year) ? 'active' : ''}`;
+    chip.textContent = year;
+    chip.addEventListener('click', () => {
+      state.chartYear = year;
+      buildChartYearChips();
+      updateKPIs();
+      updateChart();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function chartFilterRows() {
+  const entities = new Set(activeEntities());
+  return data.detail_rows.filter(item => {
+    if (!entities.has(item.empresa)) return false;
+    if (state.chartYear !== null && Number(item.ano) !== Number(state.chartYear)) return false;
+    return true;
+  });
+}
+
+function aggregateChartMonthTotals(rows) {
+  const totals = new Map();
+  rows.forEach(row => {
+    const key = normalizeDetailMonthToStart(row.data);
+    if (!/^\d{4}-\d{2}-01$/.test(key)) return;
+    totals.set(key, (totals.get(key) || 0) + Math.abs(Number(row.valor) || 0));
+  });
+  return totals;
+}
+
+function buildChartLabels(rows) {
+  if (state.chartYear !== null) {
+    const year = Number(state.chartYear);
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = String(index + 1).padStart(2, '0');
+      return `${year}-${month}-01`;
+    });
+  }
+
+  const valid = rows
+    .map(row => normalizeDetailMonthToStart(row.data))
+    .filter(value => /^\d{4}-\d{2}-01$/.test(value))
+    .sort();
+
+  if (!valid.length) return [];
+
+  const start = new Date(valid[0].slice(0, 7) + '-01T00:00:00');
+  const end = new Date(valid[valid.length - 1].slice(0, 7) + '-01T00:00:00');
+
+  const labels = [];
+  const current = new Date(start);
+  while (current <= end) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    labels.push(`${y}-${m}-01`);
+    current.setMonth(current.getMonth() + 1);
+  }
+  return labels;
+}
+
+function chartVariationValue(rows) {
+  const totals = aggregateChartMonthTotals(rows);
+  const labels = [...totals.keys()].sort();
+  if (!labels.length) return 0;
+  const first = -(totals.get(labels[0]) || 0);
+  const last = -(totals.get(labels[labels.length - 1]) || 0);
+  return last - first;
+}
+
+function axisLabelMeta(value, index, labels, mode) {
+  const text = formatAxisLabel(value, index, labels, mode);
+  return {
+    text,
+    isYear: /^\d{4}$/.test(text),
+    isMonth: Boolean(text) && !/^\d{4}$/.test(text)
+  };
+}
+
 function aggregateRows(rows) {
   const saldoFinal = rows.reduce((acc, row) => acc + (row.saldo_final || 0), 0);
   const saldoInicial = rows.reduce((acc, row) => acc + (row.saldo_inicial || 0), 0);
   return { saldoFinal, saldoInicial, variacao: saldoFinal - saldoInicial };
 }
 
+
 function updateKPIs() {
-  const rows = selectedRows();
-  const agg = aggregateRows(rows);
-  document.getElementById('saldoFinalValue').textContent = formatBRL(agg.saldoFinal);
-  document.getElementById('saldoInicialValue').textContent = formatBRL(agg.saldoInicial);
+  const rows = chartFilterRows();
+  const totalJuros = rows.reduce((acc, row) => acc + Math.abs(Number(row.valor) || 0), 0);
+
+  const totalText = totalJuros > 0 ? formatNegativeBRL(totalJuros) : formatBRL(0);
+  document.getElementById('saldoFinalValue').textContent = totalText;
+  document.getElementById('saldoInicialValue').textContent = totalText;
 
   const variacaoEl = document.getElementById('variacaoValue');
   const arrowEl = document.querySelector('.summary-arrow');
-  const positive = agg.variacao >= 0;
+  const variacao = chartVariationValue(rows);
+  const positive = variacao >= 0;
 
-  variacaoEl.textContent = `${agg.variacao < 0 ? '-' : ''}${formatBRL(Math.abs(agg.variacao))}`;
+  variacaoEl.textContent = `${variacao < 0 ? '-' : ''}${formatBRL(Math.abs(variacao))}`;
   variacaoEl.classList.toggle('summary-positive', positive);
   variacaoEl.classList.toggle('summary-negative', !positive);
 
@@ -152,7 +271,8 @@ function updateKPIs() {
   }
 
   const entityCount = state.selected.has("__ALL__") ? data.companies.length - 1 : state.selected.size;
-  document.getElementById('saldoFinalSub').textContent = `${rows.length} extratos · ${entityCount} empresas`;
+  const periodLabel = state.chartYear === null ? 'Todos os períodos' : String(state.chartYear);
+  document.getElementById('saldoFinalSub').textContent = `${rows.length} lançamentos · ${entityCount} empresas · ${periodLabel}`;
 }
 
 function sortedPeriods(rows) {
@@ -198,17 +318,16 @@ function normalizeDetailMonthToStart(value) {
   return normalizeToMonthStart(v);
 }
 
+
 function buildDatasets() {
-  const rows = selectedRows();
-  const labels = monthRangeLabels(rows);
-  const entities = new Set(activeEntities());
-  const detailRows = data.detail_rows.filter(item => entities.has(item.empresa));
+  const rows = chartFilterRows();
+  const labels = buildChartLabels(rows);
 
   if (state.selected.has("__ALL__")) {
     const vals = labels.map(label =>
-      detailRows
+      rows
         .filter(r => normalizeDetailMonthToStart(r.data) === label)
-        .reduce((a, b) => a - Math.abs(Number(b.valor) || 0), 0)
+        .reduce((acc, item) => acc + Math.abs(Number(item.valor) || 0), 0)
     );
     return {
       labels,
@@ -226,13 +345,13 @@ function buildDatasets() {
   }
 
   const entitiesList = activeEntities();
-  const detailRowsByEntity = Object.fromEntries(entitiesList.map(e => [e, data.detail_rows.filter(r => r.empresa === e)]));
+  const detailRowsByEntity = Object.fromEntries(entitiesList.map(entity => [entity, rows.filter(r => r.empresa === entity)]));
 
   const datasets = entitiesList.map(entity => {
     const vals = labels.map(label =>
       detailRowsByEntity[entity]
         .filter(r => normalizeDetailMonthToStart(r.data) === label)
-        .reduce((a, b) => a - Math.abs(Number(b.valor) || 0), 0)
+        .reduce((acc, item) => acc + Math.abs(Number(item.valor) || 0), 0)
     );
     return {
       label: entity,
@@ -261,28 +380,29 @@ function formatAxisLabel(value, index, labels, mode) {
     return year !== prevYear ? year : '';
   }
 
-  // Ano + meses-chave: ano no primeiro ponto do ano, e MAR/JUN/SET/DEZ nos demais
   const monthName = {
-    '03': 'MAR',
-    '06': 'JUN',
-    '09': 'SET'
+    '04': 'ABR',
+    '07': 'JUL',
+    '10': 'OUT'
   }[month];
 
   if (year !== prevYear) return year;
   return monthName || '';
 }
 
+
 function applyAxisMode() {
   if (!state.chart) return;
   const labels = state.chart.data.labels || [];
   state.chart.options.scales.x.ticks.callback = function(value, index) {
     const raw = labels[index];
-    return formatAxisLabel(raw, index, labels, state.axisMode);
+    return axisLabelMeta(raw, index, labels, state.axisMode).text;
   };
   state.chart.options.scales.x.ticks.autoSkip = false;
-  state.chart.options.scales.x.ticks.maxTicksLimit = state.axisMode === 'ano' ? labels.length : labels.length;
+  state.chart.options.scales.x.ticks.maxTicksLimit = labels.length;
   state.chart.update();
 }
+
 
 function buildChart() {
   const ctx = document.getElementById('lineChart').getContext('2d');
@@ -307,31 +427,36 @@ function buildChart() {
               const raw = items && items.length ? items[0].label : '';
               return formatTooltipDate(raw);
             },
-            label: (ctx) => `${ctx.dataset.label}: ${formatBRL(ctx.parsed.y || 0)}`
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y ? formatNegativeBRL(ctx.parsed.y) : formatBRL(0)}`
           }
         }
       },
       scales: {
         x: {
+          offset: true,
           ticks: {
-            color: '#7f8faa',
-            autoSkip: true,
+            color: (ctx) => {
+              const raw = ctx.chart.data.labels[ctx.index];
+              const meta = axisLabelMeta(raw, ctx.index, ctx.chart.data.labels, state.axisMode);
+              return meta.isYear ? '#cfdaf0' : '#8ea0bc';
+            },
+            font: (ctx) => {
+              const raw = ctx.chart.data.labels[ctx.index];
+              const meta = axisLabelMeta(raw, ctx.index, ctx.chart.data.labels, state.axisMode);
+              return { size: 12, weight: meta.isYear ? '800' : '700' };
+            },
+            autoSkip: false,
             maxTicksLimit: 24,
             maxRotation: 0,
+            padding: 12,
             callback: function(value, index) {
               const raw = this.chart.data.labels[index];
-              return formatAxisLabel(raw, index, this.chart.data.labels, state.axisMode);
+              return axisLabelMeta(raw, index, this.chart.data.labels, state.axisMode).text;
             }
           },
           grid: {
-            color: (ctx) => {
-              const v = Number(ctx.tick?.value || 0);
-              return v === 0 ? 'rgba(255,255,255,.38)' : 'rgba(66, 92, 128, .12)';
-            },
-            lineWidth: (ctx) => {
-              const v = Number(ctx.tick?.value || 0);
-              return v === 0 ? 1.2 : 1;
-            },
+            color: 'rgba(66, 92, 128, .12)',
+            lineWidth: 1,
             drawTicks: true
           }
         },
@@ -339,10 +464,11 @@ function buildChart() {
           ticks: {
             color: (ctx) => {
               const v = Number(ctx.tick?.value || 0);
-              return v < 0 ? '#ef4444' : '#7f8faa';
+              return v > 0 ? '#ef4444' : '#7f8faa';
             },
-            callback: (value) => formatBRL(value)
+            callback: (value) => Number(value) === 0 ? formatBRL(0) : formatNegativeBRL(value)
           },
+          beginAtZero: true,
           grid: { color: 'rgba(66, 92, 128, .12)' }
         }
       }
@@ -969,6 +1095,7 @@ if (axisDetailSelect) {
 }
 
 buildFilters();
+buildChartYearChips();
 updateKPIs();
 buildChart();
 updateDetails();

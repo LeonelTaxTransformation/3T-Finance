@@ -63,6 +63,15 @@ body{
   gap:14px;
   margin-bottom:28px;
 }
+#companyFilters{
+  margin-bottom:14px;
+}
+.chart-year-row{
+  margin:0 0 28px;
+}
+.chart-year-chip-all{
+  min-width:156px;
+}
 .filter-chip{
   background:rgba(7, 13, 24, .86);
   border:1.5px solid var(--stroke-soft);
