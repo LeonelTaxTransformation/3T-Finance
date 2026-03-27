@@ -188,15 +188,27 @@ function normalizeToMonthStart(value) {
   return v;
 }
 
+function normalizeDetailMonthToStart(value) {
+  const v = String(value || '');
+  if (/^\d{2}\/\d{4}$/.test(v)) {
+    const month = v.slice(0, 2);
+    const year = v.slice(3, 7);
+    return `${year}-${month}-01`;
+  }
+  return normalizeToMonthStart(v);
+}
+
 function buildDatasets() {
   const rows = selectedRows();
   const labels = monthRangeLabels(rows);
+  const entities = new Set(activeEntities());
+  const detailRows = data.detail_rows.filter(item => entities.has(item.empresa));
 
   if (state.selected.has("__ALL__")) {
     const vals = labels.map(label =>
-      rows
-        .filter(r => normalizeToMonthStart(r.data_final) === label)
-        .reduce((a,b) => a + (b.saldo_final || 0), 0)
+      detailRows
+        .filter(r => normalizeDetailMonthToStart(r.data) === label)
+        .reduce((a, b) => a - Math.abs(Number(b.valor) || 0), 0)
     );
     return {
       labels,
@@ -213,14 +225,14 @@ function buildDatasets() {
     };
   }
 
-  const entities = activeEntities();
-  const rowsByEntity = Object.fromEntries(entities.map(e => [e, data.rows.filter(r => r.empresa === e)]));
+  const entitiesList = activeEntities();
+  const detailRowsByEntity = Object.fromEntries(entitiesList.map(e => [e, data.detail_rows.filter(r => r.empresa === e)]));
 
-  const datasets = entities.map(entity => {
+  const datasets = entitiesList.map(entity => {
     const vals = labels.map(label =>
-      rowsByEntity[entity]
-        .filter(r => normalizeToMonthStart(r.data_final) === label)
-        .reduce((a,b) => a + (b.saldo_final || 0), 0)
+      detailRowsByEntity[entity]
+        .filter(r => normalizeDetailMonthToStart(r.data) === label)
+        .reduce((a, b) => a - Math.abs(Number(b.valor) || 0), 0)
     );
     return {
       label: entity,
