@@ -647,6 +647,10 @@ function renderDetailTable() {
 
   const showDetailedDescription = state.detailShowDescricaoDetalhada;
   const detailedClass = showDetailedDescription ? '' : 'detail-hidden';
+  const colSpan = showDetailedDescription ? 6 : 5;
+  const periodSummaryMap = new Map(
+    aggregateDetailByPeriod().map(item => [item.periodo, item])
+  );
 
   head.innerHTML = `
     <tr>
@@ -710,7 +714,7 @@ function renderDetailTable() {
   if (!rows.length) {
     body.innerHTML = `
       <tr class="detail-empty-row">
-        <td colspan="${showDetailedDescription ? 6 : 5}">Nenhum lançamento encontrado para os filtros selecionados.</td>
+        <td colspan="${colSpan}">Nenhum lançamento encontrado para os filtros selecionados.</td>
       </tr>
     `;
     return;
@@ -722,9 +726,18 @@ function renderDetailTable() {
   rows.forEach(item => {
     if (item.data !== currentPeriod) {
       currentPeriod = item.data;
+      const summary = periodSummaryMap.get(item.data) || { saldo: 0, juros: 0 };
+      const periodTotal = displayedDetailValue(summary.saldo, summary.juros);
+      const totalClass = periodTotal < 0 ? 'negative' : '';
+
       html.push(`
         <tr class="detail-month-row">
-          <td colspan="${showDetailedDescription ? 6 : 5}">${item.data}</td>
+          <td colspan="${colSpan}">
+            <div class="detail-month-row-content">
+              <span>${item.data}</span>
+              <strong class="detail-month-total ${totalClass}">${formatBRL(periodTotal)}</strong>
+            </div>
+          </td>
         </tr>
       `);
     }
@@ -763,7 +776,6 @@ function updateDetails() {
   buildDetailCompanyFilters();
   buildDetailYearChips();
   syncDetailControls();
-  renderDetailSummary();
   renderDetailTable();
 }
 

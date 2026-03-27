@@ -657,6 +657,21 @@ body{
   letter-spacing:.04em;
   border-bottom:1px solid rgba(66, 92, 128, .24);
 }
+.detail-month-row-content{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.detail-month-total{
+  color:#f1f5fd;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:0;
+}
+.detail-month-total.negative{
+  color:#ef4444;
+}
 .details-table tbody tr.detail-saldo-row td:last-child.negative{
   color:#ef4444;
 }
