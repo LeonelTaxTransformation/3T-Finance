@@ -755,8 +755,9 @@ function renderDetailTable() {
   const saldoMenosJurosClass = showSaldoMenosJuros ? '' : 'detail-hidden';
   const infoColSpan = (showDescriptionColumn ? 1 : 0) + (showContaCorrente ? 1 : 0) + (showDetailedDescription ? 1 : 0);
   const colSpan = infoColSpan + 3 + (showSaldoMenosJuros ? 1 : 0);
+  const periodSummaries = aggregateDetailByPeriod();
   const periodSummaryMap = new Map(
-    aggregateDetailByPeriod().map(item => [item.periodo, item])
+    periodSummaries.map(item => [item.periodo, item])
   );
   const rows = buildDetailDisplayRows();
 
@@ -844,6 +845,30 @@ function renderDetailTable() {
       </tr>
     `);
   });
+
+  if (showOnlySaldo || showOnlyJuros) {
+    const yearlyTotals = periodSummaries.reduce((acc, item) => {
+      acc.saldo += Number(item.saldo || 0);
+      acc.juros += Number(item.juros || 0);
+      return acc;
+    }, { saldo: 0, juros: 0 });
+    const totalSaldoClass = yearlyTotals.saldo < 0 ? 'negative' : '';
+    const totalJurosClass = yearlyTotals.juros < 0 ? 'negative' : '';
+
+    html.push(`
+      <tr class="detail-month-row">
+        <td colspan="${infoColSpan}" class="detail-month-label-cell">
+          <div class="detail-month-row-content">
+            <span>Total</span>
+          </div>
+        </td>
+        <td class="detail-month-total-cell ${totalSaldoClass}">${showOnlySaldo ? formatBRL(yearlyTotals.saldo) : ''}</td>
+        <td class="detail-month-total-cell detail-month-total-juros ${totalJurosClass}">${showOnlyJuros ? formatNegativeBRL(yearlyTotals.juros) : ''}</td>
+        <td class="detail-month-total-cell detail-month-total-net ${saldoMenosJurosClass}"></td>
+        <td class="detail-month-spacer-cell"></td>
+      </tr>
+    `);
+  }
 
   body.innerHTML = html.join('');
 }
